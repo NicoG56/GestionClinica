@@ -1,11 +1,162 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Recepcionista{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-calendar-check"></i> Panel de Recepción</h2>
+            <p class="text-muted">Bienvenida, {{ usuario.nombre }}</p>
+        </div>
+    </div>
     
-</body>
-</html>
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Citas Hoy</h6>
+                            <h2 class="card-title mb-0">{{ citas_hoy|length }}</h2>
+                        </div>
+                        <i class="bi bi-calendar-day display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Citas Pendientes</h6>
+                            <h2 class="card-title mb-0">{{ citas_pendientes }}</h2>
+                        </div>
+                        <i class="bi bi-clock-history display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Pacientes</h6>
+                            <h2 class="card-title mb-0">{{ total_pacientes }}</h2>
+                        </div>
+                        <i class="bi bi-people display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Acciones Rápidas -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'crear_cita' %}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="bi bi-calendar-plus display-6 d-block mb-2"></i>
+                                Agendar Cita
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'crear_paciente' %}" class="btn btn-outline-success w-100 py-3">
+                                <i class="bi bi-person-plus display-6 d-block mb-2"></i>
+                                Registrar Paciente
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'lista_pacientes' %}" class="btn btn-outline-info w-100 py-3">
+                                <i class="bi bi-people display-6 d-block mb-2"></i>
+                                Ver Pacientes
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'lista_citas' %}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="bi bi-calendar3 display-6 d-block mb-2"></i>
+                                Todas las Citas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Citas de Hoy -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-day"></i> Agenda del Día</h5>
+                </div>
+                <div class="card-body">
+                    {% if citas_hoy %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Paciente</th>
+                                    <th>RUT</th>
+                                    <th>Médico</th>
+                                    <th>Motivo</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cita in citas_hoy %}
+                                <tr>
+                                    <td><strong>{{ cita.fecha_hora|date:"H:i" }}</strong></td>
+                                    <td>{{ cita.paciente.nombre }}</td>
+                                    <td>{{ cita.paciente.rut }}</td>
+                                    <td>Dr./Dra. {{ cita.medico.nombre }}</td>
+                                    <td>{{ cita.motivo }}</td>
+                                    <td>
+                                        {% if cita.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">{{ cita.get_estado_display }}</span>
+                                        {% elif cita.estado == 'confirmada' %}
+                                        <span class="badge bg-info">{{ cita.get_estado_display }}</span>
+                                        {% elif cita.estado == 'en_curso' %}
+                                        <span class="badge bg-primary">{{ cita.get_estado_display }}</span>
+                                        {% elif cita.estado == 'completada' %}
+                                        <span class="badge bg-success">{{ cita.get_estado_display }}</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">{{ cita.get_estado_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'editar_cita' cita.id %}" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No hay citas programadas para hoy</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

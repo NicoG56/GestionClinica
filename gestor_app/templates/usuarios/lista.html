@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-people"></i> Gestión de Usuarios</h2>
+            <p class="text-muted">Administrar usuarios del sistema</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'crear_usuario' %}" class="btn btn-primary">
+                <i class="bi bi-person-plus"></i> Crear Usuario
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Filtrar por Rol</label>
+                    <select name="rol" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        <option value="administrador" {% if rol_filter == 'administrador' %}selected{% endif %}>Administrador</option>
+                        <option value="medico" {% if rol_filter == 'medico' %}selected{% endif %}>Médico</option>
+                        <option value="enfermera" {% if rol_filter == 'enfermera' %}selected{% endif %}>Enfermera</option>
+                        <option value="recepcionista" {% if rol_filter == 'recepcionista' %}selected{% endif %}>Recepcionista</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Lista de Usuarios -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-list"></i> Lista de Usuarios</h5>
+        </div>
+        <div class="card-body">
+            {% if usuarios %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>RUT</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Rol</th>
+                            <th>Especialidad</th>
+                            <th>Estado</th>
+                            <th>Fecha Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr>
+                            <td>{{ usuario.rut }}</td>
+                            <td>{{ usuario.nombre }}</td>
+                            <td>{{ usuario.email|default:"-" }}</td>
+                            <td>{{ usuario.telefono|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ usuario.get_rol_display }}</span>
+                            </td>
+                            <td>{{ usuario.especialidad|default:"-" }}</td>
+                            <td>
+                                {% if usuario.is_active %}
+                                <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ usuario.fecha_creacion|date:"d/m/Y" }}</td>
+                            <td>
+                                <a href="{% url 'editar_usuario' usuario.id %}" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if usuario.is_active %}
+                                <a href="{% url 'eliminar_usuario' usuario.id %}" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center mb-0">No hay usuarios registrados</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Ver Paciente{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col"><h2><i class="bi bi-person"></i> {{ paciente.nombre }}</h2><p class="text-muted">RUT: {{ paciente.rut }}</p></div>
+        <div class="col-auto">
+            {% if user.rol == 'administrador' %}
+            <a href="{% url 'editar_paciente' paciente.id %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Editar</a>
+            {% endif %}
+            <a href="{% url 'lista_pacientes' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white"><h6 class="mb-0">Información Personal</h6></div>
+                <div class="card-body">
+                    <p><strong>Fecha Nacimiento:</strong> {{ paciente.fecha_nacimiento|date:"d/m/Y" }}</p>
+                    <p><strong>Género:</strong> {{ paciente.get_genero_display }}</p>
+                    <p><strong>Teléfono:</strong> {{ paciente.telefono }}</p>
+                    <p><strong>Email:</strong> {{ paciente.email|default:"-" }}</p>
+                    <p><strong>Dirección:</strong> {{ paciente.direccion }}</p>
+                    <hr>
+                    <p><strong>Contacto Emergencia:</strong> {{ paciente.contacto_emergencia }}</p>
+                    <p><strong>Tel. Emergencia:</strong> {{ paciente.telefono_emergencia }}</p>
+                </div>
+            </div>
+            {% if historia %}
+            <div class="card">
+                <div class="card-header bg-success text-white"><h6 class="mb-0">Historia Clínica</h6></div>
+                <div class="card-body">
+                    <p><strong>Grupo Sanguíneo:</strong> {{ historia.grupo_sanguineo|default:"-" }}</p>
+                    <p><strong>Alergias:</strong> {{ historia.alergias|default:"Ninguna" }}</p>
+                    <p><strong>Enfermedades Crónicas:</strong> {{ historia.enfermedades_cronicas|default:"Ninguna" }}</p>
+                    <a href="{% url 'editar_historia' historia.id %}" class="btn btn-sm btn-warning">Editar</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <p>No tiene historia clínica</p>
+                    <a href="{% url 'crear_historia' paciente.id %}" class="btn btn-primary">Crear Historia</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white"><h6 class="mb-0">Citas Recientes</h6></div>
+                <div class="card-body">
+                    {% if citas %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Fecha</th><th>Médico</th><th>Estado</th><th>Acciones</th></tr></thead>
+                            <tbody>
+                                {% for cita in citas %}
+                                <tr>
+                                    <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ cita.medico.nombre }}</td>
+                                    <td><span class="badge bg-info">{{ cita.get_estado_display }}</span></td>
+                                    <td><a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">Ver</a></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No hay citas registradas</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

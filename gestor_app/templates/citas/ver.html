@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Ver Cita{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col"><h2><i class="bi bi-calendar-check"></i> Detalle de Cita</h2></div>
+        <div class="col-auto">
+            <a href="{% url 'editar_cita' cita.id %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Editar</a>
+            <a href="{% url 'lista_citas' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Paciente:</strong> {{ cita.paciente.nombre }}</p>
+                    <p><strong>Médico:</strong> Dr./Dra. {{ cita.medico.nombre }}</p>
+                    <p><strong>Fecha y Hora:</strong> {{ cita.fecha_hora|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Estado:</strong> <span class="badge bg-info">{{ cita.get_estado_display }}</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Motivo:</strong> {{ cita.motivo }}</p>
+                    <p><strong>Observaciones:</strong> {{ cita.observaciones|default:"-" }}</p>
+                    {% if cita.diagnostico %}<p><strong>Diagnóstico:</strong> {{ cita.diagnostico }}</p>{% endif %}
+                    {% if cita.tratamiento %}<p><strong>Tratamiento:</strong> {{ cita.tratamiento }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

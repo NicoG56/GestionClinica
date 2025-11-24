@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Recetas Médicas{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col"><h2><i class="bi bi-clipboard-pulse"></i> Recetas Médicas</h2></div>
+        <div class="col-auto">
+            {% if user.rol == 'medico' %}
+            <a href="{% url 'crear_receta' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nueva Receta</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            {% if recetas %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Fecha</th><th>Paciente</th><th>Médico</th><th>Vigencia</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        {% for receta in recetas %}
+                        <tr>
+                            <td>{{ receta.fecha_emision|date:"d/m/Y" }}</td>
+                            <td>{{ receta.paciente.nombre }}</td>
+                            <td>{{ receta.medico.usuario.nombre }}</td>
+                            <td>{{ receta.vigencia|date:"d/m/Y" }}</td>
+                            <td>
+                                <a href="{% url 'ver_receta' receta.id %}" class="btn btn-sm btn-info" title="Ver detalles"><i class="bi bi-eye"></i></a>
+                                <a href="{% url 'descargar_receta_pdf' receta.id %}" class="btn btn-sm btn-danger" target="_blank" title="Ver PDF"><i class="bi bi-file-pdf"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">No hay recetas registradas</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

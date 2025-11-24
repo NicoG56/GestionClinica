@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Signos Vitales{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col"><h2><i class="bi bi-heart-pulse"></i> Registros de Signos Vitales</h2></div>
+        <div class="col-auto">
+            {% if user.rol == 'enfermera' %}
+            <a href="{% url 'registrar_signos' %}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Registrar Signos</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            {% if signos %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Fecha/Hora</th><th>Paciente</th><th>Presión</th><th>FC</th><th>Temp</th><th>SatO2</th><th>Enfermera</th></tr></thead>
+                    <tbody>
+                        {% for s in signos %}
+                        <tr>
+                            <td>{{ s.fecha_hora|date:"d/m/Y H:i" }}</td>
+                            <td>{{ s.paciente.nombre }}</td>
+                            <td>{{ s.presion_arterial }}</td>
+                            <td>{{ s.frecuencia_cardiaca }} lpm</td>
+                            <td>{{ s.temperatura }}°C</td>
+                            <td>{{ s.saturacion_oxigeno }}%</td>
+                            <td>{{ s.enfermera.nombre }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">No hay registros</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,11 +1,136 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Enfermera{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-heart-pulse"></i> Panel de Enfermería</h2>
+            <p class="text-muted">Bienvenida, {{ usuario.nombre }}</p>
+        </div>
+    </div>
     
-</body>
-</html>
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Citas de Hoy</h6>
+                            <h2 class="card-title mb-0">{{ citas_hoy|length }}</h2>
+                        </div>
+                        <i class="bi bi-calendar-check display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Signos Vitales Hoy</h6>
+                            <h2 class="card-title mb-0">{{ signos_hoy }}</h2>
+                        </div>
+                        <i class="bi bi-clipboard2-pulse display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Acciones Rápidas -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'registrar_signos' %}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="bi bi-plus-circle display-6 d-block mb-2"></i>
+                                Registrar Signos Vitales
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'lista_signos' %}" class="btn btn-outline-success w-100 py-3">
+                                <i class="bi bi-list-check display-6 d-block mb-2"></i>
+                                Ver Registros
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'lista_pacientes' %}" class="btn btn-outline-info w-100 py-3">
+                                <i class="bi bi-people display-6 d-block mb-2"></i>
+                                Ver Pacientes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Citas de Hoy -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-day"></i> Citas de Hoy</h5>
+                </div>
+                <div class="card-body">
+                    {% if citas_hoy %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Paciente</th>
+                                    <th>Médico</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cita in citas_hoy %}
+                                <tr>
+                                    <td>{{ cita.fecha_hora|date:"H:i" }}</td>
+                                    <td>{{ cita.paciente.nombre }}</td>
+                                    <td>Dr./Dra. {{ cita.medico.nombre }}</td>
+                                    <td>
+                                        {% if cita.estado == 'confirmada' %}
+                                        <span class="badge bg-info">{{ cita.get_estado_display }}</span>
+                                        {% elif cita.estado == 'en_curso' %}
+                                        <span class="badge bg-primary">{{ cita.get_estado_display }}</span>
+                                        {% elif cita.estado == 'completada' %}
+                                        <span class="badge bg-success">{{ cita.get_estado_display }}</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">{{ cita.get_estado_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>
+                                        <a href="{% url 'ver_paciente' cita.paciente.id %}" class="btn btn-sm btn-info">
+                                            <i class="bi bi-person"></i> Paciente
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No hay citas programadas para hoy</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

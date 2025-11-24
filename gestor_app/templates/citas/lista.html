@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Citas Médicas{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col"><h2><i class="bi bi-calendar-check"></i> Gestión de Citas</h2></div>
+        <div class="col-auto">
+            {% if user.rol in 'administrador,recepcionista' %}
+            <a href="{% url 'crear_cita' %}" class="btn btn-primary"><i class="bi bi-calendar-plus"></i> Nueva Cita</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            {% if citas %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>Fecha/Hora</th><th>Paciente</th><th>Médico</th><th>Motivo</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                        {% for cita in citas %}
+                        <tr>
+                            <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
+                            <td>{{ cita.paciente.nombre }}</td>
+                            <td>{{ cita.medico.nombre }}</td>
+                            <td>{{ cita.motivo }}</td>
+                            <td><span class="badge bg-info">{{ cita.get_estado_display }}</span></td>
+                            <td>
+                                <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-info"><i class="bi bi-eye"></i></a>
+                                <a href="{% url 'editar_cita' cita.id %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">No hay citas registradas</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

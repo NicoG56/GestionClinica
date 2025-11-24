@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Administrador{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-speedometer2"></i> Panel de Administrador</h2>
+            <p class="text-muted">Bienvenido, {{ usuario.nombre }}</p>
+        </div>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Usuarios</h6>
+                            <h2 class="card-title mb-0">{{ total_usuarios }}</h2>
+                        </div>
+                        <i class="bi bi-people display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Pacientes</h6>
+                            <h2 class="card-title mb-0">{{ total_pacientes }}</h2>
+                        </div>
+                        <i class="bi bi-person-badge display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Citas Hoy</h6>
+                            <h2 class="card-title mb-0">{{ total_citas_hoy }}</h2>
+                        </div>
+                        <i class="bi bi-calendar-check display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Acciones Rápidas -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'crear_usuario' %}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="bi bi-person-plus display-6 d-block mb-2"></i>
+                                Crear Usuario
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'lista_usuarios' %}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="bi bi-list-ul display-6 d-block mb-2"></i>
+                                Ver Usuarios
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'lista_pacientes' %}" class="btn btn-outline-success w-100 py-3">
+                                <i class="bi bi-people display-6 d-block mb-2"></i>
+                                Ver Pacientes
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'lista_citas' %}" class="btn btn-outline-info w-100 py-3">
+                                <i class="bi bi-calendar3 display-6 d-block mb-2"></i>
+                                Ver Citas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Usuarios Recientes -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Usuarios Recientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if usuarios_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>RUT</th>
+                                    <th>Nombre</th>
+                                    <th>Rol</th>
+                                    <th>Email</th>
+                                    <th>Fecha Registro</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in usuarios_recientes %}
+                                <tr>
+                                    <td>{{ u.rut }}</td>
+                                    <td>{{ u.nombre }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ u.get_rol_display }}</span>
+                                    </td>
+                                    <td>{{ u.email|default:"-" }}</td>
+                                    <td>{{ u.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if u.is_active %}
+                                        <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No hay usuarios registrados</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

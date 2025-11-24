@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Eliminar Cita{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white"><h5><i class="bi bi-exclamation-triangle"></i> Cancelar Cita</h5></div>
+                <div class="card-body">
+                    <p>¿Está seguro que desea cancelar esta cita?</p>
+                    <ul>
+                        <li><strong>Paciente:</strong> {{ cita.paciente.nombre }}</li>
+                        <li><strong>Médico:</strong> {{ cita.medico.nombre }}</li>
+                        <li><strong>Fecha:</strong> {{ cita.fecha_hora|date:"d/m/Y H:i" }}</li>
+                    </ul>
+                    <form method="post" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Sí, Cancelar</button>
+                        <a href="{% url 'lista_citas' %}" class="btn btn-secondary">Volver</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
