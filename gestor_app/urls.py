@@ -36,6 +36,7 @@ urlpatterns = [
     path('citas/<int:cita_id>/', views.ver_cita, name='ver_cita'),
     path('citas/<int:cita_id>/editar/', views.editar_cita, name='editar_cita'),
     path('citas/<int:cita_id>/eliminar/', views.eliminar_cita, name='eliminar_cita'),
+    path('api/horarios-disponibles/', views.obtener_horarios_disponibles, name='obtener_horarios_disponibles'),
     
     # Recetas Médicas (Solo Médicos)
     path('recetas/', views.lista_recetas, name='lista_recetas'),

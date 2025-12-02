@@ -2,10 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login as auth_login, logout as auth_logout, authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.utils import timezone
 from django.http import HttpResponse
-from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -15,7 +14,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita, RecetaMedica, HistoriaClinica, SignosVitales
 from .forms import (
     LoginForm, CustomUserCreationForm, CustomUserEditForm, MedicoForm, EnfermeraForm, RecepcionistaForm,
-    PacienteForm, HistoriaClinicaForm, CitaForm, RecetaMedicaForm, SignosVitalesForm
+    PacienteForm, HistoriaClinicaForm, CitaForm, RecetaMedicaForm, SignosVitalesForm, CitaMedicoForm
 )
 
 # Decoradores de permisos
@@ -33,6 +32,14 @@ def es_recepcionista(user):
 
 def puede_gestionar_pacientes(user):
     return user.is_authenticated and user.rol in ['administrador', 'medico', 'enfermera', 'recepcionista']
+
+def puede_ver_pacientes(user):
+    """Permite ver información de pacientes (incluyendo médicos en modo solo lectura)"""
+    return user.is_authenticated and user.rol in ['administrador', 'medico', 'enfermera', 'recepcionista']
+
+def puede_editar_pacientes(user):
+    """Permite editar datos personales de pacientes (NO incluye médicos)"""
+    return user.is_authenticated and user.rol in ['administrador', 'enfermera', 'recepcionista']
 
 def puede_gestionar_citas(user):
     return user.is_authenticated and user.rol in ['administrador', 'recepcionista']
@@ -94,11 +101,11 @@ def dashboard(request):
 @login_required
 @user_passes_test(es_administrador)
 def dashboard_administrador(request):
-    total_usuarios = CustomUser.objects.filter(is_active=True).count()
-    total_pacientes = Paciente.objects.filter(activo=True).count()
+    total_usuarios = CustomUser.objects.count()
+    total_pacientes = Paciente.objects.count()
     total_citas_hoy = Cita.objects.filter(fecha_hora__date=timezone.now().date()).count()
     
-    usuarios_recientes = CustomUser.objects.filter(is_active=True).order_by('-fecha_creacion')[:5]
+    usuarios_recientes = CustomUser.objects.order_by('-fecha_creacion')[:5]
     
     context = {
         'usuario': request.user,
@@ -137,7 +144,7 @@ def dashboard_medico(request):
     # Total de pacientes atendidos por este médico
     pacientes_atendidos = Cita.objects.filter(medico=medico).values('paciente').distinct().count()
     # Total de pacientes en el sistema
-    total_pacientes = Paciente.objects.filter(activo=True).count()
+    total_pacientes = Paciente.objects.count()
     
     context = {
         'usuario': request.user,
@@ -183,7 +190,7 @@ def dashboard_recepcionista(request):
     
     citas_hoy = Cita.objects.filter(fecha_hora__date=hoy).order_by('fecha_hora')
     citas_pendientes = Cita.objects.filter(estado='pendiente', fecha_hora__gte=timezone.now()).count()
-    total_pacientes = Paciente.objects.filter(activo=True).count()
+    total_pacientes = Paciente.objects.count()
     
     context = {
         'usuario': request.user,
@@ -222,6 +229,28 @@ def crear_usuario(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             usuario = form.save()
+            
+            # Si el rol es médico, crear el perfil de médico con los campos adicionales
+            if usuario.rol == 'medico':
+                Medico.objects.create(
+                    usuario=usuario,
+                    especialidad=request.POST.get('especialidad', ''),
+                    numero_registro=request.POST.get('numero_registro', ''),
+                    anos_experiencia=int(request.POST.get('anos_experiencia', 0)),
+                    duracion_consulta=int(request.POST.get('duracion_consulta', 30)),
+                    atiende_manana=request.POST.get('atiende_manana') == 'on',
+                    hora_inicio_manana=request.POST.get('hora_inicio_manana', '08:30'),
+                    hora_fin_manana=request.POST.get('hora_fin_manana', '12:30'),
+                    atiende_tarde=request.POST.get('atiende_tarde') == 'on',
+                    hora_inicio_tarde=request.POST.get('hora_inicio_tarde', '13:30'),
+                    hora_fin_tarde=request.POST.get('hora_fin_tarde', '17:00'),
+                    dias_atencion=request.POST.get('dias_atencion', '1,2,3,4,5')
+                )
+            elif usuario.rol == 'enfermera':
+                Enfermera.objects.create(usuario=usuario)
+            elif usuario.rol == 'recepcionista':
+                Recepcionista.objects.create(usuario=usuario)
+            
             messages.success(request, f'Usuario {usuario.nombre} creado exitosamente')
             return redirect('lista_usuarios')
         else:
@@ -237,16 +266,59 @@ def crear_usuario(request):
 def editar_usuario(request, user_id):
     usuario = get_object_or_404(CustomUser, id=user_id)
     
+    # Obtener el perfil de médico si existe
+    medico = None
+    if usuario.rol == 'medico':
+        medico = Medico.objects.filter(usuario=usuario).first()
+    
     if request.method == 'POST':
         form = CustomUserEditForm(request.POST, instance=usuario)
         if form.is_valid():
             form.save()
+            
+            # Si es médico, actualizar o crear el perfil
+            if usuario.rol == 'medico':
+                if medico:
+                    # Actualizar perfil existente
+                    medico.especialidad = request.POST.get('especialidad', '')
+                    medico.numero_registro = request.POST.get('numero_registro', '')
+                    medico.anos_experiencia = int(request.POST.get('anos_experiencia', 0))
+                    medico.duracion_consulta = int(request.POST.get('duracion_consulta', 30))
+                    medico.atiende_manana = request.POST.get('atiende_manana') == 'on'
+                    medico.hora_inicio_manana = request.POST.get('hora_inicio_manana', '08:30')
+                    medico.hora_fin_manana = request.POST.get('hora_fin_manana', '12:30')
+                    medico.atiende_tarde = request.POST.get('atiende_tarde') == 'on'
+                    medico.hora_inicio_tarde = request.POST.get('hora_inicio_tarde', '13:30')
+                    medico.hora_fin_tarde = request.POST.get('hora_fin_tarde', '17:00')
+                    medico.dias_atencion = request.POST.get('dias_atencion', '1,2,3,4,5')
+                    medico.save()
+                else:
+                    # Crear nuevo perfil
+                    Medico.objects.create(
+                        usuario=usuario,
+                        especialidad=request.POST.get('especialidad', ''),
+                        numero_registro=request.POST.get('numero_registro', ''),
+                        anos_experiencia=int(request.POST.get('anos_experiencia', 0)),
+                        duracion_consulta=int(request.POST.get('duracion_consulta', 30)),
+                        atiende_manana=request.POST.get('atiende_manana') == 'on',
+                        hora_inicio_manana=request.POST.get('hora_inicio_manana', '08:30'),
+                        hora_fin_manana=request.POST.get('hora_fin_manana', '12:30'),
+                        atiende_tarde=request.POST.get('atiende_tarde') == 'on',
+                        hora_inicio_tarde=request.POST.get('hora_inicio_tarde', '13:30'),
+                        hora_fin_tarde=request.POST.get('hora_fin_tarde', '17:00'),
+                        dias_atencion=request.POST.get('dias_atencion', '1,2,3,4,5')
+                    )
+            
             messages.success(request, f'Usuario {usuario.nombre} actualizado exitosamente')
             return redirect('lista_usuarios')
     else:
         form = CustomUserEditForm(instance=usuario)
     
-    return render(request, 'usuarios/editar.html', {'form': form, 'usuario': usuario})
+    return render(request, 'usuarios/editar.html', {
+        'form': form, 
+        'usuario': usuario,
+        'medico': medico
+    })
 
 
 @login_required
@@ -255,9 +327,9 @@ def eliminar_usuario(request, user_id):
     usuario = get_object_or_404(CustomUser, id=user_id)
     
     if request.method == 'POST':
-        usuario.is_active = False
-        usuario.save()
-        messages.success(request, f'Usuario {usuario.nombre} desactivado exitosamente')
+        nombre_usuario = usuario.nombre
+        usuario.delete()
+        messages.success(request, f'Usuario {nombre_usuario} eliminado exitosamente de la base de datos')
         return redirect('lista_usuarios')
     
     return render(request, 'usuarios/eliminar.html', {'usuario': usuario})
@@ -268,7 +340,7 @@ def eliminar_usuario(request, user_id):
 @login_required
 @user_passes_test(puede_gestionar_pacientes)
 def lista_pacientes(request):
-    pacientes = Paciente.objects.filter(activo=True).order_by('nombre')
+    pacientes = Paciente.objects.all().order_by('nombre')
     
     # Búsqueda
     busqueda = request.GET.get('q')
@@ -287,7 +359,7 @@ def lista_pacientes(request):
 
 
 @login_required
-@user_passes_test(puede_gestionar_pacientes)
+@user_passes_test(puede_ver_pacientes)
 def ver_paciente(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     citas = Cita.objects.filter(paciente=paciente).order_by('-fecha_hora')[:10]
@@ -326,7 +398,7 @@ def crear_paciente(request):
 
 
 @login_required
-@user_passes_test(es_administrador)
+@user_passes_test(puede_editar_pacientes)
 def editar_paciente(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     
@@ -348,9 +420,9 @@ def eliminar_paciente(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     
     if request.method == 'POST':
-        paciente.activo = False
-        paciente.save()
-        messages.success(request, f'Paciente {paciente.nombre} desactivado exitosamente')
+        nombre_paciente = paciente.nombre
+        paciente.delete()
+        messages.success(request, f'Paciente {nombre_paciente} eliminado exitosamente de la base de datos')
         return redirect('lista_pacientes')
     
     return render(request, 'pacientes/eliminar.html', {'paciente': paciente})
@@ -404,12 +476,50 @@ def crear_cita(request):
             cita = form.save(commit=False)
             cita.creada_por = request.user
             cita.save()
-            messages.success(request, f'Cita creada exitosamente para {cita.paciente.nombre}')
+            messages.success(request, f'Cita creada exitosamente para {cita.paciente.nombre} el {cita.fecha_hora.strftime("%d/%m/%Y a las %H:%M")}')
             return redirect('lista_citas')
     else:
         form = CitaForm()
     
     return render(request, 'citas/crear.html', {'form': form})
+
+
+@login_required
+@user_passes_test(puede_gestionar_citas)
+def obtener_horarios_disponibles(request):
+    """Vista AJAX para obtener horarios disponibles de un médico en una fecha"""
+    from django.http import JsonResponse
+    from datetime import datetime, date
+    
+    medico_id = request.GET.get('medico_id')
+    fecha_str = request.GET.get('fecha')
+    
+    if not medico_id or not fecha_str:
+        return JsonResponse({'horarios': []})
+    
+    try:
+        medico = Medico.objects.get(id=medico_id)
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        
+        # Verificar que la fecha no sea en el pasado
+        if fecha < date.today():
+            return JsonResponse({'horarios': [], 'error': 'No se pueden agendar citas en fechas pasadas'})
+        
+        horarios = medico.obtener_horarios_disponibles(fecha)
+        
+        horarios_list = [
+            {
+                'value': h.strftime('%H:%M'),
+                'text': h.strftime('%H:%M')
+            } for h in horarios
+        ]
+        
+        return JsonResponse({'horarios': horarios_list})
+        
+    except Medico.DoesNotExist:
+        return JsonResponse({'horarios': [], 'error': 'Médico no encontrado'})
+    except ValueError:
+        return JsonResponse({'horarios': [], 'error': 'Formato de fecha inválido'})
 
 
 @login_required

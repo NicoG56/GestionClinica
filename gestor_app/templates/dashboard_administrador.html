@@ -126,13 +126,6 @@
                                     </td>
                                     <td>{{ u.email|default:"-" }}</td>
                                     <td>{{ u.fecha_creacion|date:"d/m/Y H:i" }}</td>
-                                    <td>
-                                        {% if u.is_active %}
-                                        <span class="badge bg-success">Activo</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">Inactivo</span>
-                                        {% endif %}
-                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

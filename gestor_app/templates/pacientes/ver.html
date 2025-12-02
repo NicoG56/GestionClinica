@@ -5,7 +5,7 @@
     <div class="row mb-4">
         <div class="col"><h2><i class="bi bi-person"></i> {{ paciente.nombre }}</h2><p class="text-muted">RUT: {{ paciente.rut }}</p></div>
         <div class="col-auto">
-            {% if user.rol == 'administrador' %}
+            {% if user.rol in 'administrador,enfermera,recepcionista' %}
             <a href="{% url 'editar_paciente' paciente.id %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Editar</a>
             {% endif %}
             <a href="{% url 'lista_pacientes' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
@@ -33,40 +33,104 @@
                     <p><strong>Grupo Sanguíneo:</strong> {{ historia.grupo_sanguineo|default:"-" }}</p>
                     <p><strong>Alergias:</strong> {{ historia.alergias|default:"Ninguna" }}</p>
                     <p><strong>Enfermedades Crónicas:</strong> {{ historia.enfermedades_cronicas|default:"Ninguna" }}</p>
+                    {% if user.rol in 'administrador,enfermera,recepcionista' %}
                     <a href="{% url 'editar_historia' historia.id %}" class="btn btn-sm btn-warning">Editar</a>
+                    {% endif %}
                 </div>
             </div>
             {% else %}
             <div class="card">
                 <div class="card-body text-center">
                     <p>No tiene historia clínica</p>
+                    {% if user.rol in 'administrador,enfermera,recepcionista' %}
                     <a href="{% url 'crear_historia' paciente.id %}" class="btn btn-primary">Crear Historia</a>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
         </div>
         <div class="col-md-8">
             <div class="card mb-4">
-                <div class="card-header bg-info text-white"><h6 class="mb-0">Citas Recientes</h6></div>
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Historial de Consultas</h6>
+                </div>
                 <div class="card-body">
                     {% if citas %}
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead><tr><th>Fecha</th><th>Médico</th><th>Estado</th><th>Acciones</th></tr></thead>
-                            <tbody>
-                                {% for cita in citas %}
-                                <tr>
-                                    <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
-                                    <td>{{ cita.medico.nombre }}</td>
-                                    <td><span class="badge bg-info">{{ cita.get_estado_display }}</span></td>
-                                    <td><a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">Ver</a></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="accordion" id="accordionCitas">
+                        {% for cita in citas %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ cita.id }}">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#collapse{{ cita.id }}" 
+                                        aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
+                                        aria-controls="collapse{{ cita.id }}">
+                                    <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                        <span>
+                                            <strong>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</strong> - 
+                                            Dr(a). {{ cita.medico.usuario.nombre }}
+                                        </span>
+                                        <span class="badge bg-{% if cita.estado == 'completada' %}success{% elif cita.estado == 'pendiente' %}warning{% elif cita.estado == 'confirmada' %}info{% else %}secondary{% endif %}">
+                                            {{ cita.get_estado_display }}
+                                        </span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ cita.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                                 aria-labelledby="heading{{ cita.id }}" data-bs-parent="#accordionCitas">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong><i class="bi bi-person-badge"></i> Médico:</strong> 
+                                                Dr(a). {{ cita.medico.usuario.nombre }}<br>
+                                                <small class="text-muted">{{ cita.medico.especialidad }}</small>
+                                            </p>
+                                            <p><strong><i class="bi bi-card-text"></i> Motivo:</strong> {{ cita.motivo }}</p>
+                                            
+                                            {% if cita.diagnostico %}
+                                            <div class="alert alert-info mb-2">
+                                                <strong><i class="bi bi-clipboard-pulse"></i> Diagnóstico:</strong>
+                                                <p class="mb-0 mt-1">{{ cita.diagnostico }}</p>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if cita.tratamiento %}
+                                            <div class="alert alert-success mb-2">
+                                                <strong><i class="bi bi-capsule"></i> Tratamiento:</strong>
+                                                <p class="mb-0 mt-1">{{ cita.tratamiento }}</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            {% if cita.observaciones %}
+                                            <div class="alert alert-warning mb-2">
+                                                <strong><i class="bi bi-chat-left-text"></i> Observaciones:</strong>
+                                                <p class="mb-0 mt-1">{{ cita.observaciones }}</p>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <p class="text-muted small">
+                                                <i class="bi bi-clock"></i> Creada: {{ cita.creado_en|date:"d/m/Y H:i" }}<br>
+                                                {% if cita.actualizado_en %}
+                                                <i class="bi bi-arrow-repeat"></i> Actualizada: {{ cita.actualizado_en|date:"d/m/Y H:i" }}
+                                                {% endif %}
+                                            </p>
+                                            
+                                            <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-eye"></i> Ver detalles completos
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                     {% else %}
-                    <p class="text-muted">No hay citas registradas</p>
+                    <p class="text-muted text-center py-4">
+                        <i class="bi bi-calendar-x" style="font-size: 3rem;"></i><br>
+                        No hay consultas registradas para este paciente
+                    </p>
                     {% endif %}
                 </div>
             </div>

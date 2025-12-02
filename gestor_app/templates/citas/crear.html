@@ -3,44 +3,143 @@
 {% block content %}
 <div class="container">
     <h2 class="mb-4"><i class="bi bi-calendar-plus"></i> Agendar Nueva Cita</h2>
+    
     <div class="card">
         <div class="card-body">
-            <form method="post">
+            <form method="post" id="citaForm">
                 {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label">{{ form.paciente.label }}</label>
+                        <label class="form-label">{{ form.paciente.label }} *</label>
                         {{ form.paciente }}
+                        {% if form.paciente.errors %}
+                        <div class="text-danger">{{ form.paciente.errors }}</div>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">{{ form.medico.label }}</label>
+                        <label class="form-label">{{ form.medico.label }} *</label>
                         {{ form.medico }}
+                        {% if form.medico.errors %}
+                        <div class="text-danger">{{ form.medico.errors }}</div>
+                        {% endif %}
                     </div>
                 </div>
+                
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label">{{ form.fecha_hora.label }}</label>
-                        {{ form.fecha_hora }}
+                        <label class="form-label">{{ form.fecha.label }} *</label>
+                        {{ form.fecha }}
+                        {% if form.fecha.errors %}
+                        <div class="text-danger">{{ form.fecha.errors }}</div>
+                        {% endif %}
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">{{ form.estado.label }}</label>
-                        {{ form.estado }}
+                        <label class="form-label">{{ form.hora.label }} *</label>
+                        {{ form.hora }}
+                        <div id="loadingHorarios" class="text-muted small mt-1" style="display: none;">
+                            <span class="spinner-border spinner-border-sm"></span> Cargando horarios...
+                        </div>
+                        {% if form.hora.errors %}
+                        <div class="text-danger">{{ form.hora.errors }}</div>
+                        {% endif %}
                     </div>
                 </div>
+                
                 <div class="mb-3">
-                    <label class="form-label">{{ form.motivo.label }}</label>
+                    <label class="form-label">{{ form.motivo.label }} *</label>
                     {{ form.motivo }}
+                    {% if form.motivo.errors %}
+                    <div class="text-danger">{{ form.motivo.errors }}</div>
+                    {% endif %}
                 </div>
+                
                 <div class="mb-3">
                     <label class="form-label">{{ form.observaciones.label }}</label>
                     {{ form.observaciones }}
                 </div>
+                
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Guardar</button>
-                    <a href="{% url 'lista_citas' %}" class="btn btn-secondary"><i class="bi bi-x-circle"></i> Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Agendar Cita
+                    </button>
+                    <a href="{% url 'lista_citas' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const medicoSelect = document.querySelector('select[name="medico"]');
+    const fechaInput = document.querySelector('input[name="fecha"]');
+    const horaSelect = document.querySelector('select[name="hora"]');
+    const loading = document.getElementById('loadingHorarios');
+    
+    // Guardar el valor inicial de hora si existe (cuando hay error de validación)
+    const horaInicial = horaSelect.value;
+    
+    function cargarHorarios() {
+        const medicoId = medicoSelect.value;
+        const fecha = fechaInput.value;
+        
+        if (!medicoId || !fecha) {
+            horaSelect.innerHTML = '<option value="">Primero seleccione médico y fecha</option>';
+            return;
+        }
+        
+        loading.style.display = 'block';
+        horaSelect.disabled = true;
+        
+        fetch(`/api/horarios-disponibles/?medico_id=${medicoId}&fecha=${fecha}`)
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                horaSelect.disabled = false;
+                
+                if (data.error) {
+                    horaSelect.innerHTML = `<option value="">${data.error}</option>`;
+                } else if (data.horarios.length === 0) {
+                    horaSelect.innerHTML = '<option value="">No hay horarios disponibles</option>';
+                } else {
+                    horaSelect.innerHTML = '<option value="">Seleccione un horario</option>';
+                    data.horarios.forEach(h => {
+                        const option = document.createElement('option');
+                        option.value = h.value;
+                        option.textContent = h.text;
+                        horaSelect.appendChild(option);
+                    });
+                    
+                    // Restaurar el valor seleccionado previamente si existe
+                    if (horaInicial) {
+                        horaSelect.value = horaInicial;
+                    }
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                horaSelect.disabled = false;
+                horaSelect.innerHTML = '<option value="">Error al cargar horarios</option>';
+                console.error('Error:', error);
+            });
+    }
+    
+    medicoSelect.addEventListener('change', cargarHorarios);
+    fechaInput.addEventListener('change', cargarHorarios);
+    
+    // Si hay médico y fecha seleccionados al cargar (después de error), cargar horarios
+    if (medicoSelect.value && fechaInput.value) {
+        cargarHorarios();
+    }
+});
+</script>
 {% endblock %}

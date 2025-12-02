@@ -46,26 +46,97 @@
                             </div>
                         </div>
                         
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">{{ form.especialidad.label }}</label>
-                                {{ form.especialidad }}
+                        <!-- Campos específicos para médicos -->
+                        {% if usuario.rol == 'medico' %}
+                        <div id="medico-fields">
+                            <hr class="my-4">
+                            <h5 class="mb-3">Información del Médico</h5>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Especialidad</label>
+                                    <input type="text" name="especialidad" class="form-control" 
+                                           value="{{ medico.especialidad|default:'' }}" placeholder="Ej: Medicina General">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Número de Registro</label>
+                                    <input type="text" name="numero_registro" class="form-control"
+                                           value="{{ medico.numero_registro|default:'' }}">
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">{{ form.numero_registro.label }}</label>
-                                {{ form.numero_registro }}
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Años de Experiencia</label>
+                                    <input type="number" name="anos_experiencia" class="form-control" min="0" 
+                                           value="{{ medico.anos_experiencia|default:0 }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Duración de Consulta (minutos)</label>
+                                    <input type="number" name="duracion_consulta" class="form-control" min="15" step="15" 
+                                           value="{{ medico.duracion_consulta|default:30 }}">
+                                </div>
+                            </div>
+                            
+                            <h6 class="mb-3">Horarios de Atención</h6>
+                            
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="atiende_manana" 
+                                               id="atiende_manana" {% if medico.atiende_manana %}checked{% endif %}>
+                                        <label class="form-check-label" for="atiende_manana">
+                                            <strong>Atiende en la Mañana</strong>
+                                        </label>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Inicio</label>
+                                            <input type="time" name="hora_inicio_manana" class="form-control" 
+                                                   value="{{ medico.hora_inicio_manana|default:'08:30' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Fin</label>
+                                            <input type="time" name="hora_fin_manana" class="form-control" 
+                                                   value="{{ medico.hora_fin_manana|default:'12:30' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="atiende_tarde" 
+                                               id="atiende_tarde" {% if medico.atiende_tarde %}checked{% endif %}>
+                                        <label class="form-check-label" for="atiende_tarde">
+                                            <strong>Atiende en la Tarde</strong>
+                                        </label>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Inicio</label>
+                                            <input type="time" name="hora_inicio_tarde" class="form-control" 
+                                                   value="{{ medico.hora_inicio_tarde|default:'13:30' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Fin</label>
+                                            <input type="time" name="hora_fin_tarde" class="form-control" 
+                                                   value="{{ medico.hora_fin_tarde|default:'17:00' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Días de Atención</label>
+                                <input type="text" name="dias_atencion" class="form-control" 
+                                       value="{{ medico.dias_atencion|default:'1,2,3,4,5' }}"
+                                       placeholder="1,2,3,4,5 (1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb, 7=Dom)">
+                                <small class="text-muted">Ingrese los números de días separados por comas</small>
                             </div>
                         </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-check">
-                                {{ form.is_active }}
-                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
-                                    {{ form.is_active.label }}
-                                </label>
-                            </div>
-                        </div>
-                        
+                        {% endif %}                        
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-check-circle"></i> Guardar Cambios

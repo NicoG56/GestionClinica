@@ -50,8 +50,6 @@
                             <th>Email</th>
                             <th>Teléfono</th>
                             <th>Rol</th>
-                            <th>Especialidad</th>
-                            <th>Estado</th>
                             <th>Fecha Registro</th>
                             <th>Acciones</th>
                         </tr>
@@ -66,24 +64,14 @@
                             <td>
                                 <span class="badge bg-primary">{{ usuario.get_rol_display }}</span>
                             </td>
-                            <td>{{ usuario.especialidad|default:"-" }}</td>
-                            <td>
-                                {% if usuario.is_active %}
-                                <span class="badge bg-success">Activo</span>
-                                {% else %}
-                                <span class="badge bg-danger">Inactivo</span>
-                                {% endif %}
-                            </td>
                             <td>{{ usuario.fecha_creacion|date:"d/m/Y" }}</td>
                             <td>
                                 <a href="{% url 'editar_usuario' usuario.id %}" class="btn btn-sm btn-warning">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                {% if usuario.is_active %}
                                 <a href="{% url 'eliminar_usuario' usuario.id %}" class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i>
                                 </a>
-                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

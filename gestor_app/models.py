@@ -58,18 +58,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     
     def __str__(self):
         return f"{self.nombre} ({self.rut}) - {self.get_rol_display()}"
-    
-    def es_administrador(self):
-        return self.rol == 'administrador'
-    
-    def es_medico(self):
-        return self.rol == 'medico' or hasattr(self, 'medico')
-    
-    def es_enfermera(self):
-        return self.rol == 'enfermera' or hasattr(self, 'enfermera')
-    
-    def es_recepcionista(self):
-        return self.rol == 'recepcionista' or hasattr(self, 'recepcionista')
 
 
 # Modelo de Médico (extendido del usuario)
@@ -78,8 +66,27 @@ class Medico(models.Model):
     especialidad = models.CharField(max_length=100, verbose_name='Especialidad')
     numero_registro = models.CharField(max_length=50, verbose_name='Número de Registro Profesional', unique=True)
     anos_experiencia = models.IntegerField(verbose_name='Años de Experiencia', default=0)
-    horario_atencion = models.CharField(max_length=200, blank=True, null=True, verbose_name='Horario de Atención')
-    activo = models.BooleanField(default=True)
+    
+    # Configuración de horarios (bloques de 30 minutos)
+    duracion_consulta = models.IntegerField(default=30, verbose_name='Duración de Consulta (minutos)')
+    
+    # Horario mañana
+    atiende_manana = models.BooleanField(default=True, verbose_name='Atiende en la mañana')
+    hora_inicio_manana = models.TimeField(default='08:30', verbose_name='Hora Inicio Mañana')
+    hora_fin_manana = models.TimeField(default='12:30', verbose_name='Hora Fin Mañana')
+    
+    # Horario tarde
+    atiende_tarde = models.BooleanField(default=True, verbose_name='Atiende en la tarde')
+    hora_inicio_tarde = models.TimeField(default='13:30', verbose_name='Hora Inicio Tarde')
+    hora_fin_tarde = models.TimeField(default='17:00', verbose_name='Hora Fin Tarde')
+    
+    # Días de atención (1=Lunes, 7=Domingo)
+    dias_atencion = models.CharField(
+        max_length=20, 
+        default='1,2,3,4,5',
+        verbose_name='Días de Atención',
+        help_text='Días separados por comas (1=Lunes, 2=Martes, etc.)'
+    )
     
     class Meta:
         verbose_name = 'Médico'
@@ -88,6 +95,65 @@ class Medico(models.Model):
     
     def __str__(self):
         return f"Dr(a). {self.usuario.nombre} - {self.especialidad}"
+    
+    def get_dias_atencion_list(self):
+        """Retorna lista de días como enteros"""
+        return [int(d.strip()) for d in self.dias_atencion.split(',') if d.strip()]
+    
+    def genera_bloques_horarios(self, fecha):
+        """Genera todos los bloques de horarios disponibles para una fecha"""
+        from datetime import datetime, timedelta, time
+        
+        # Verificar si el médico atiende ese día (1=Lunes, 7=Domingo)
+        dia_semana = fecha.isoweekday()
+        if dia_semana not in self.get_dias_atencion_list():
+            return []
+        
+        bloques = []
+        
+        # Generar bloques de la mañana
+        if self.atiende_manana:
+            hora_actual = datetime.combine(fecha, self.hora_inicio_manana)
+            hora_fin = datetime.combine(fecha, self.hora_fin_manana)
+            
+            while hora_actual < hora_fin:
+                bloques.append(hora_actual.time())
+                hora_actual += timedelta(minutes=self.duracion_consulta)
+        
+        # Generar bloques de la tarde
+        if self.atiende_tarde:
+            hora_actual = datetime.combine(fecha, self.hora_inicio_tarde)
+            hora_fin = datetime.combine(fecha, self.hora_fin_tarde)
+            
+            while hora_actual < hora_fin:
+                bloques.append(hora_actual.time())
+                hora_actual += timedelta(minutes=self.duracion_consulta)
+        
+        return bloques
+    
+    def obtener_horarios_disponibles(self, fecha):
+        """Obtiene horarios disponibles (no ocupados) para una fecha"""
+        from datetime import datetime, time
+        
+        bloques = self.genera_bloques_horarios(fecha)
+        
+        # Obtener citas ya agendadas para ese día
+        inicio_dia = datetime.combine(fecha, time.min)
+        fin_dia = datetime.combine(fecha, time.max)
+        
+        citas_ocupadas = Cita.objects.filter(
+            medico=self,
+            fecha_hora__range=(inicio_dia, fin_dia),
+            estado__in=['pendiente', 'confirmada', 'en_curso']
+        ).values_list('fecha_hora', flat=True)
+        
+        # Convertir a time para comparar
+        horas_ocupadas = [c.time() for c in citas_ocupadas]
+        
+        # Filtrar bloques ocupados
+        horarios_disponibles = [b for b in bloques if b not in horas_ocupadas]
+        
+        return horarios_disponibles
 
 
 # Modelo de Enfermera (extendido del usuario)
@@ -102,7 +168,6 @@ class Enfermera(models.Model):
     numero_registro = models.CharField(max_length=50, verbose_name='Número de Registro Profesional', unique=True)
     turno = models.CharField(max_length=10, choices=TURNO_CHOICES, default='manana')
     area_asignada = models.CharField(max_length=100, blank=True, null=True, verbose_name='Área Asignada')
-    activo = models.BooleanField(default=True)
     
     class Meta:
         verbose_name = 'Enfermera'
@@ -118,7 +183,6 @@ class Recepcionista(models.Model):
     usuario = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='recepcionista')
     area_trabajo = models.CharField(max_length=100, verbose_name='Área de Trabajo', default='Recepción General')
     horario = models.CharField(max_length=200, blank=True, null=True)
-    activo = models.BooleanField(default=True)
     
     class Meta:
         verbose_name = 'Recepcionista'
@@ -147,7 +211,6 @@ class Paciente(models.Model):
     contacto_emergencia = models.CharField(max_length=100, verbose_name='Contacto de Emergencia')
     telefono_emergencia = models.CharField(max_length=15, verbose_name='Teléfono de Emergencia')
     fecha_registro = models.DateTimeField(auto_now_add=True)
-    activo = models.BooleanField(default=True)
     
     class Meta:
         verbose_name = 'Paciente'
@@ -177,7 +240,6 @@ class HistoriaClinica(models.Model):
     def __str__(self):
         return f"Historia Clínica de {self.paciente.nombre}"
 
-
 # Modelo de Cita Médica
 class Cita(models.Model):
     ESTADO_CHOICES = (
@@ -204,6 +266,14 @@ class Cita(models.Model):
         verbose_name = 'Cita Médica'
         verbose_name_plural = 'Citas Médicas'
         ordering = ['-fecha_hora']
+        # Restricción: un médico no puede tener dos citas al mismo tiempo
+        constraints = [
+            models.UniqueConstraint(
+                fields=['medico', 'fecha_hora'],
+                condition=models.Q(estado__in=['pendiente', 'confirmada', 'en_curso']),
+                name='unique_medico_fecha_hora_activa'
+            )
+        ]
     
     def __str__(self):
         return f"Cita: {self.paciente.nombre} - {self.medico} ({self.fecha_hora.strftime('%d/%m/%Y %H:%M')})"
@@ -250,3 +320,4 @@ class SignosVitales(models.Model):
     
     def __str__(self):
         return f"Signos Vitales de {self.paciente.nombre} ({self.fecha_hora.strftime('%d/%m/%Y %H:%M')})"
+

@@ -60,21 +60,82 @@
                             {% endif %}
                         </div>
                         
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">{{ form.especialidad.label }}</label>
-                                {{ form.especialidad }}
-                                {% if form.especialidad.errors %}
-                                <div class="text-danger small">{{ form.especialidad.errors }}</div>
-                                {% endif %}
-                                <small class="text-muted">Solo para médicos</small>
+                        <!-- Campos específicos para médicos -->
+                        <div id="medico-fields" style="display: none;">
+                            <hr class="my-4">
+                            <h5 class="mb-3">Información del Médico</h5>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Especialidad</label>
+                                    <input type="text" name="especialidad" class="form-control" placeholder="Ej: Medicina General">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Número de Registro</label>
+                                    <input type="text" name="numero_registro" class="form-control">
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">{{ form.numero_registro.label }}</label>
-                                {{ form.numero_registro }}
-                                {% if form.numero_registro.errors %}
-                                <div class="text-danger small">{{ form.numero_registro.errors }}</div>
-                                {% endif %}
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Años de Experiencia</label>
+                                    <input type="number" name="anos_experiencia" class="form-control" min="0" value="0">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Duración de Consulta (minutos)</label>
+                                    <input type="number" name="duracion_consulta" class="form-control" min="15" step="15" value="30">
+                                </div>
+                            </div>
+                            
+                            <h6 class="mb-3">Horarios de Atención</h6>
+                            
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="atiende_manana" id="atiende_manana" checked>
+                                        <label class="form-check-label" for="atiende_manana">
+                                            <strong>Atiende en la Mañana</strong>
+                                        </label>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Inicio</label>
+                                            <input type="time" name="hora_inicio_manana" class="form-control" value="08:30">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Fin</label>
+                                            <input type="time" name="hora_fin_manana" class="form-control" value="12:30">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="atiende_tarde" id="atiende_tarde" checked>
+                                        <label class="form-check-label" for="atiende_tarde">
+                                            <strong>Atiende en la Tarde</strong>
+                                        </label>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Inicio</label>
+                                            <input type="time" name="hora_inicio_tarde" class="form-control" value="13:30">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Hora de Fin</label>
+                                            <input type="time" name="hora_fin_tarde" class="form-control" value="17:00">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Días de Atención</label>
+                                <input type="text" name="dias_atencion" class="form-control" value="1,2,3,4,5" 
+                                       placeholder="1,2,3,4,5 (1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb, 7=Dom)">
+                                <small class="text-muted">Ingrese los números de días separados por comas</small>
                             </div>
                         </div>
                         
@@ -109,4 +170,22 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rolSelect = document.querySelector('select[name="rol"]');
+    const medicoFields = document.getElementById('medico-fields');
+    
+    function toggleMedicoFields() {
+        if (rolSelect.value === 'medico') {
+            medicoFields.style.display = 'block';
+        } else {
+            medicoFields.style.display = 'none';
+        }
+    }
+    
+    rolSelect.addEventListener('change', toggleMedicoFields);
+    toggleMedicoFields(); // Check initial value
+});
+</script>
 {% endblock %}

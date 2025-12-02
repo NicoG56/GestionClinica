@@ -50,13 +50,12 @@ class CustomUserCreationForm(UserCreationForm):
 class CustomUserEditForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['nombre', 'email', 'telefono', 'rol', 'is_active']
+        fields = ['nombre', 'email', 'telefono', 'rol']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'rol': forms.Select(attrs={'class': 'form-select'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 
@@ -64,12 +63,26 @@ class CustomUserEditForm(forms.ModelForm):
 class MedicoForm(forms.ModelForm):
     class Meta:
         model = Medico
-        fields = ['especialidad', 'numero_registro', 'anos_experiencia', 'horario_atencion']
+        fields = [
+            'especialidad', 'numero_registro', 'anos_experiencia', 'duracion_consulta',
+            'atiende_manana', 'hora_inicio_manana', 'hora_fin_manana',
+            'atiende_tarde', 'hora_inicio_tarde', 'hora_fin_tarde', 'dias_atencion'
+        ]
         widgets = {
             'especialidad': forms.TextInput(attrs={'class': 'form-control'}),
             'numero_registro': forms.TextInput(attrs={'class': 'form-control'}),
             'anos_experiencia': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
-            'horario_atencion': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Lun-Vie 09:00-17:00'}),
+            'duracion_consulta': forms.NumberInput(attrs={'class': 'form-control', 'min': '15', 'step': '15'}),
+            'atiende_manana': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'hora_inicio_manana': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'hora_fin_manana': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'atiende_tarde': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'hora_inicio_tarde': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'hora_fin_tarde': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'dias_atencion': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '1,2,3,4,5 (1=Lun, 2=Mar, ..., 7=Dom)'
+            }),
         }
 
 
@@ -139,32 +152,101 @@ class HistoriaClinicaForm(forms.ModelForm):
         }
 
 
-# Formulario de Cita
+# Formulario para crear/editar citas
 class CitaForm(forms.ModelForm):
-    fecha_hora = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={
-            'class': 'form-control',
-            'type': 'datetime-local'
-        }),
-        label='Fecha y Hora'
+    fecha = forms.DateField(
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        label='Fecha',
+        required=True
+    )
+    
+    hora = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Hora',
+        required=True
     )
     
     class Meta:
         model = Cita
-        fields = ['paciente', 'medico', 'fecha_hora', 'motivo', 'estado', 'observaciones']
+        fields = ['paciente', 'medico', 'motivo', 'observaciones']
         widgets = {
             'paciente': forms.Select(attrs={'class': 'form-select'}),
             'medico': forms.Select(attrs={'class': 'form-select'}),
             'motivo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Motivo de la consulta'}),
-            'estado': forms.Select(attrs={'class': 'form-select'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Observaciones adicionales'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filtrar solo médicos activos
-        self.fields['medico'].queryset = Medico.objects.filter(activo=True)
-        self.fields['paciente'].queryset = Paciente.objects.filter(activo=True)
+        
+        # Si estamos editando una cita existente, cargar sus horarios
+        if self.instance and self.instance.pk:
+            medico = self.instance.medico
+            fecha = self.instance.fecha_hora.date()
+            hora_actual = self.instance.fecha_hora.time()
+            
+            # Obtener horarios disponibles
+            horarios = medico.obtener_horarios_disponibles(fecha)
+            
+            # Agregar la hora actual si no está en la lista (porque está ocupada por esta cita)
+            if hora_actual not in horarios:
+                horarios.append(hora_actual)
+                horarios.sort()
+            
+            self.fields['hora'].choices = [(h.strftime('%H:%M'), h.strftime('%H:%M')) for h in horarios]
+            self.fields['fecha'].initial = fecha
+            self.fields['hora'].initial = hora_actual.strftime('%H:%M')
+        else:
+            # Para nueva cita, cargar horarios si hay datos POST
+            if 'medico' in self.data and 'fecha' in self.data:
+                try:
+                    from datetime import datetime
+                    medico = Medico.objects.get(id=self.data.get('medico'))
+                    fecha = datetime.strptime(self.data.get('fecha'), '%Y-%m-%d').date()
+                    horarios = medico.obtener_horarios_disponibles(fecha)
+                    self.fields['hora'].choices = [(h.strftime('%H:%M'), h.strftime('%H:%M')) for h in horarios]
+                except (Medico.DoesNotExist, ValueError):
+                    self.fields['hora'].choices = [('', 'Error al cargar horarios')]
+            else:
+                self.fields['hora'].choices = [('', 'Primero seleccione médico y fecha')]
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        fecha = cleaned_data.get('fecha')
+        hora = cleaned_data.get('hora')
+        medico = cleaned_data.get('medico')
+        
+        if fecha and hora and medico:
+            from datetime import datetime
+            
+            # Convertir hora string a time
+            hora_obj = datetime.strptime(hora, '%H:%M').time()
+            
+            # Combinar fecha y hora
+            fecha_hora = datetime.combine(fecha, hora_obj)
+            cleaned_data['fecha_hora'] = fecha_hora
+            
+            # Validar que el horario esté disponible
+            cita_existente = Cita.objects.filter(
+                medico=medico,
+                fecha_hora=fecha_hora,
+                estado__in=['pendiente', 'confirmada', 'en_curso']
+            ).exclude(pk=self.instance.pk if self.instance.pk else None)
+            
+            if cita_existente.exists():
+                raise forms.ValidationError('Este horario ya está ocupado. Por favor, seleccione otro.')
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.fecha_hora = self.cleaned_data['fecha_hora']
+        instance.estado = 'pendiente'
+        
+        if commit:
+            instance.save()
+        return instance
 
 
 # Formulario para actualizar cita (médico)

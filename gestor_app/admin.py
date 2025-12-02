@@ -5,15 +5,15 @@ from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita
 # Admin personalizado para el modelo de usuario
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['rut', 'nombre', 'rol', 'email', 'is_active', 'fecha_creacion']
-    list_filter = ['rol', 'is_active', 'is_staff']
+    list_display = ['rut', 'nombre', 'rol', 'email', 'fecha_creacion']
+    list_filter = ['rol', 'is_staff']
     search_fields = ['rut', 'nombre', 'email']
     ordering = ['-fecha_creacion']
     
     fieldsets = (
         (None, {'fields': ('rut', 'password')}),
         ('Información Personal', {'fields': ('nombre', 'email', 'telefono')}),
-        ('Rol y Permisos', {'fields': ('rol', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Rol y Permisos', {'fields': ('rol', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Fechas', {'fields': ('fecha_creacion', 'last_login')}),
     )
     
@@ -29,8 +29,8 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Medico)
 class MedicoAdmin(admin.ModelAdmin):
-    list_display = ['get_nombre', 'get_rut', 'especialidad', 'numero_registro', 'activo']
-    list_filter = ['especialidad', 'activo']
+    list_display = ['get_nombre', 'get_rut', 'especialidad', 'numero_registro']
+    list_filter = ['especialidad']
     search_fields = ['usuario__nombre', 'usuario__rut', 'especialidad', 'numero_registro']
     ordering = ['usuario__nombre']
     
@@ -45,8 +45,8 @@ class MedicoAdmin(admin.ModelAdmin):
 
 @admin.register(Enfermera)
 class EnfermeraAdmin(admin.ModelAdmin):
-    list_display = ['get_nombre', 'get_rut', 'numero_registro', 'turno', 'activo']
-    list_filter = ['turno', 'activo']
+    list_display = ['get_nombre', 'get_rut', 'numero_registro', 'turno']
+    list_filter = ['turno']
     search_fields = ['usuario__nombre', 'usuario__rut', 'numero_registro']
     ordering = ['usuario__nombre']
     
@@ -61,8 +61,8 @@ class EnfermeraAdmin(admin.ModelAdmin):
 
 @admin.register(Recepcionista)
 class RecepcionistaAdmin(admin.ModelAdmin):
-    list_display = ['get_nombre', 'get_rut', 'area_trabajo', 'activo']
-    list_filter = ['activo']
+    list_display = ['get_nombre', 'get_rut', 'area_trabajo']
+    list_filter = []
     search_fields = ['usuario__nombre', 'usuario__rut', 'area_trabajo']
     ordering = ['usuario__nombre']
     
@@ -76,8 +76,8 @@ class RecepcionistaAdmin(admin.ModelAdmin):
 
 @admin.register(Paciente)
 class PacienteAdmin(admin.ModelAdmin):
-    list_display = ['rut', 'nombre', 'fecha_nacimiento', 'telefono', 'activo', 'fecha_registro']
-    list_filter = ['activo', 'genero', 'fecha_registro']
+    list_display = ['rut', 'nombre', 'fecha_nacimiento', 'telefono', 'fecha_registro']
+    list_filter = ['genero', 'fecha_registro']
     search_fields = ['rut', 'nombre', 'telefono']
     ordering = ['nombre']
     readonly_fields = ['fecha_registro']

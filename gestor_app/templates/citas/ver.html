@@ -3,26 +3,145 @@
 {% block content %}
 <div class="container">
     <div class="row mb-4">
-        <div class="col"><h2><i class="bi bi-calendar-check"></i> Detalle de Cita</h2></div>
+        <div class="col">
+            <h2><i class="bi bi-calendar-check"></i> Detalle de Cita</h2>
+            <p class="text-muted">Consulta del {{ cita.fecha_hora|date:"d/m/Y" }} a las {{ cita.fecha_hora|date:"H:i" }}</p>
+        </div>
         <div class="col-auto">
-            <a href="{% url 'editar_cita' cita.id %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Editar</a>
-            <a href="{% url 'lista_citas' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+            {% if user.rol == 'medico' %}
+            <a href="{% url 'editar_cita' cita.id %}" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            {% endif %}
+            <a href="{% url 'lista_citas' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
         </div>
     </div>
-    <div class="card">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Paciente:</strong> {{ cita.paciente.nombre }}</p>
-                    <p><strong>Médico:</strong> Dr./Dra. {{ cita.medico.nombre }}</p>
-                    <p><strong>Fecha y Hora:</strong> {{ cita.fecha_hora|date:"d/m/Y H:i" }}</p>
-                    <p><strong>Estado:</strong> <span class="badge bg-info">{{ cita.get_estado_display }}</span></p>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información General</h5>
                 </div>
-                <div class="col-md-6">
-                    <p><strong>Motivo:</strong> {{ cita.motivo }}</p>
-                    <p><strong>Observaciones:</strong> {{ cita.observaciones|default:"-" }}</p>
-                    {% if cita.diagnostico %}<p><strong>Diagnóstico:</strong> {{ cita.diagnostico }}</p>{% endif %}
-                    {% if cita.tratamiento %}<p><strong>Tratamiento:</strong> {{ cita.tratamiento }}</p>{% endif %}
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong><i class="bi bi-person"></i> Paciente:</strong><br>
+                                <a href="{% url 'ver_paciente' cita.paciente.id %}">{{ cita.paciente.nombre }}</a><br>
+                                <small class="text-muted">RUT: {{ cita.paciente.rut }}</small>
+                            </p>
+                            
+                            <p><strong><i class="bi bi-person-badge"></i> Médico:</strong><br>
+                                Dr(a). {{ cita.medico.usuario.nombre }}<br>
+                                <small class="text-muted">{{ cita.medico.especialidad }}</small>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong><i class="bi bi-calendar-event"></i> Fecha y Hora:</strong><br>
+                                {{ cita.fecha_hora|date:"d/m/Y H:i" }}
+                            </p>
+                            
+                            <p><strong><i class="bi bi-flag"></i> Estado:</strong><br>
+                                <span class="badge bg-{% if cita.estado == 'completada' %}success{% elif cita.estado == 'pendiente' %}warning{% elif cita.estado == 'confirmada' %}info{% elif cita.estado == 'en_curso' %}primary{% else %}danger{% endif %} fs-6">
+                                    {{ cita.get_estado_display }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <strong><i class="bi bi-card-text"></i> Motivo de la Consulta:</strong>
+                        <p class="mt-2">{{ cita.motivo }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            {% if cita.diagnostico or cita.tratamiento or cita.observaciones %}
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-clipboard-pulse"></i> Información Médica</h5>
+                </div>
+                <div class="card-body">
+                    {% if cita.diagnostico %}
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-clipboard2-pulse"></i> Diagnóstico:</h6>
+                        <p class="mb-0">{{ cita.diagnostico }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if cita.tratamiento %}
+                    <div class="alert alert-success">
+                        <h6><i class="bi bi-capsule"></i> Tratamiento:</h6>
+                        <p class="mb-0">{{ cita.tratamiento }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if cita.observaciones %}
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-chat-left-text"></i> Observaciones:</h6>
+                        <p class="mb-0">{{ cita.observaciones }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card mb-3">
+                <div class="card-body text-center text-muted">
+                    <i class="bi bi-clipboard-x" style="font-size: 3rem;"></i>
+                    <p class="mt-2">No hay información médica registrada para esta cita</p>
+                    {% if user.rol == 'medico' %}
+                    <a href="{% url 'editar_cita' cita.id %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Agregar Información Médica
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Registro</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-2">
+                        <strong>Creada por:</strong><br>
+                        {{ cita.creada_por.nombre }}<br>
+                        <span class="text-muted">{{ cita.creado_en|date:"d/m/Y H:i" }}</span>
+                    </p>
+                    
+                    {% if cita.actualizado_en %}
+                    <p class="small mb-0">
+                        <strong>Última actualización:</strong><br>
+                        <span class="text-muted">{{ cita.actualizado_en|date:"d/m/Y H:i" }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="bi bi-lightning"></i> Acciones Rápidas</h6>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'ver_paciente' cita.paciente.id %}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-person-lines-fill"></i> Ver Historia del Paciente
+                    </a>
+                    
+                    {% if user.rol == 'medico' %}
+                    <a href="{% url 'crear_receta' %}?paciente={{ cita.paciente.id }}" class="btn btn-outline-success w-100 mb-2">
+                        <i class="bi bi-prescription2"></i> Emitir Receta
+                    </a>
+                    
+                    <a href="{% url 'editar_cita' cita.id %}" class="btn btn-outline-warning w-100">
+                        <i class="bi bi-pencil"></i> Editar Consulta
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

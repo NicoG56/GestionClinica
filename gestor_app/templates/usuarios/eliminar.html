@@ -8,21 +8,23 @@
         <div class="col-md-6">
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Confirmar Desactivación</h5>
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h5>
                 </div>
                 <div class="card-body">
-                    <p>¿Está seguro que desea desactivar al usuario?</p>
+                    <p>¿Está seguro que desea eliminar permanentemente al usuario?</p>
                     <ul>
                         <li><strong>RUT:</strong> {{ usuario.rut }}</li>
                         <li><strong>Nombre:</strong> {{ usuario.nombre }}</li>
                         <li><strong>Rol:</strong> {{ usuario.get_rol_display }}</li>
                     </ul>
-                    <p class="text-danger"><strong>Esta acción desactivará el usuario pero no eliminará sus registros.</strong></p>
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-octagon"></i> <strong>¡ADVERTENCIA!</strong> Esta acción eliminará permanentemente el usuario y todos sus datos asociados de la base de datos. Esta acción no se puede deshacer.
+                    </div>
                     
                     <form method="post" class="d-flex gap-2">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-trash"></i> Sí, Desactivar
+                            <i class="bi bi-trash"></i> Sí, Eliminar Permanentemente
                         </button>
                         <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">
                             <i class="bi bi-x-circle"></i> Cancelar
