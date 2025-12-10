@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Agregar Medicamento{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-capsule-pill"></i> Agregar Nuevo Medicamento</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label">
+                                <i class="bi bi-file-medical"></i> Nombre del Medicamento
+                            </label>
+                            {{ form.nombre }}
+                            {% if form.nombre.errors %}
+                            <div class="text-danger small">{{ form.nombre.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.gramos.id_for_label }}" class="form-label">
+                                    <i class="bi bi-calculator"></i> Concentración (gramos)
+                                </label>
+                                {{ form.gramos }}
+                                {% if form.gramos.errors %}
+                                <div class="text-danger small">{{ form.gramos.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Concentración del medicamento</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.cantidad.id_for_label }}" class="form-label">
+                                    <i class="bi bi-box"></i> Cantidad en Stock
+                                </label>
+                                {{ form.cantidad }}
+                                {% if form.cantidad.errors %}
+                                <div class="text-danger small">{{ form.cantidad.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Unidades disponibles</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.descripcion.id_for_label }}" class="form-label">
+                                <i class="bi bi-card-text"></i> Descripción
+                            </label>
+                            {{ form.descripcion }}
+                            {% if form.descripcion.errors %}
+                            <div class="text-danger small">{{ form.descripcion.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Información adicional sobre el medicamento</small>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Guardar Medicamento
+                            </button>
+                            <a href="{% url 'lista_medicamentos' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

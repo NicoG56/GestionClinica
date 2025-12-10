@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita, RecetaMedica, HistoriaClinica, SignosVitales
+from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita, RecetaMedica, HistoriaClinica, SignosVitales, Medicamento, RecetaMedicamento
 
 # Admin personalizado para el modelo de usuario
 @admin.register(CustomUser)
@@ -116,3 +116,21 @@ class SignosVitalesAdmin(admin.ModelAdmin):
     search_fields = ['paciente__nombre', 'enfermera__usuario__nombre']
     ordering = ['-fecha_hora']
     readonly_fields = ['fecha_hora']
+
+
+@admin.register(Medicamento)
+class MedicamentoAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'gramos', 'cantidad', 'fecha_actualizacion']
+    list_filter = ['fecha_creacion', 'fecha_actualizacion']
+    search_fields = ['nombre', 'descripcion']
+    ordering = ['nombre']
+    readonly_fields = ['fecha_creacion', 'fecha_actualizacion']
+
+
+@admin.register(RecetaMedicamento)
+class RecetaMedicamentoAdmin(admin.ModelAdmin):
+    list_display = ['receta', 'medicamento', 'cantidad_recetada', 'dosis', 'fecha_agregado']
+    list_filter = ['fecha_agregado']
+    search_fields = ['medicamento__nombre', 'receta__paciente__nombre']
+    ordering = ['-fecha_agregado']
+    readonly_fields = ['fecha_agregado']

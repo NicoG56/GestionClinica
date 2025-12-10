@@ -21,7 +21,7 @@
                         <tr>
                             <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
                             <td>{{ cita.paciente.nombre }}</td>
-                            <td>{{ cita.medico.nombre }}</td>
+                            <td>{{ cita.medico.usuario.nombre }}</td>
                             <td>{{ cita.motivo }}</td>
                             <td><span class="badge bg-info">{{ cita.get_estado_display }}</span></td>
                             <td>

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Inventario de Medicamentos{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="bi bi-capsule"></i> Inventario de Medicamentos</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'crear_medicamento' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Agregar Medicamento
+            </a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            {% if medicamentos %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Concentración</th>
+                            <th>Stock</th>
+                            <th>Descripción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for med in medicamentos %}
+                        <tr class="{% if med.cantidad == 0 %}table-danger{% elif med.cantidad < 10 %}table-warning{% endif %}">
+                            <td><strong>{{ med.nombre }}</strong></td>
+                            <td>{{ med.gramos }}g</td>
+                            <td>
+                                {% if med.cantidad == 0 %}
+                                <span class="badge bg-danger">Sin Stock</span>
+                                {% elif med.cantidad < 10 %}
+                                <span class="badge bg-warning">{{ med.cantidad }} unidades</span>
+                                {% else %}
+                                <span class="badge bg-success">{{ med.cantidad }} unidades</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ med.descripcion|truncatewords:10|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'editar_medicamento' med.id %}" class="btn btn-sm btn-warning" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'eliminar_medicamento' med.id %}" class="btn btn-sm btn-danger" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted">No hay medicamentos registrados en el inventario</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

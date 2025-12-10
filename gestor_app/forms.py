@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita, RecetaMedica, HistoriaClinica, SignosVitales
+from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita, RecetaMedica, HistoriaClinica, SignosVitales, Medicamento, RecetaMedicamento
 from datetime import date
 
 # Formulario de Login con RUT
@@ -274,29 +274,19 @@ class RecetaMedicaForm(forms.ModelForm):
     
     class Meta:
         model = RecetaMedica
-        fields = ['cita', 'paciente', 'medicamentos', 'indicaciones', 'vigencia']
+        fields = ['paciente', 'indicaciones', 'vigencia']
         widgets = {
-            'cita': forms.Select(attrs={'class': 'form-select'}),
             'paciente': forms.Select(attrs={'class': 'form-select'}),
-            'medicamentos': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 5,
-                'placeholder': 'Liste los medicamentos con dosis y frecuencia. Ej:\n- Paracetamol 500mg - 1 comprimido cada 8 horas\n- Ibuprofeno 400mg - 1 comprimido cada 12 horas'
-            }),
             'indicaciones': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 4,
-                'placeholder': 'Indicaciones para el paciente'
+                'placeholder': 'Indicaciones preventivas para el paciente'
             }),
         }
     
     def __init__(self, *args, **kwargs):
         medico = kwargs.pop('medico', None)
         super().__init__(*args, **kwargs)
-        
-        if medico:
-            # Filtrar solo las citas del médico
-            self.fields['cita'].queryset = Cita.objects.filter(medico=medico)
 
 
 # Formulario de Signos Vitales
@@ -320,3 +310,33 @@ class SignosVitalesForm(forms.ModelForm):
             'altura': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '170'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+
+# Formulario de Medicamento
+class MedicamentoForm(forms.ModelForm):
+    class Meta:
+        model = Medicamento
+        fields = ['nombre', 'gramos', 'cantidad', 'descripcion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del medicamento'}),
+            'gramos': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Ej: 500'}),
+            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Cantidad en stock'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del medicamento'}),
+        }
+
+
+# Formulario para agregar medicamentos a una receta
+class RecetaMedicamentoForm(forms.ModelForm):
+    class Meta:
+        model = RecetaMedicamento
+        fields = ['medicamento', 'cantidad_recetada', 'dosis']
+        widgets = {
+            'medicamento': forms.Select(attrs={'class': 'form-select'}),
+            'cantidad_recetada': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'value': '1'}),
+            'dosis': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 1 comprimido cada 8 horas'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Solo mostrar medicamentos con stock disponible
+        self.fields['medicamento'].queryset = Medicamento.objects.filter(cantidad__gt=0)

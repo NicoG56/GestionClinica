@@ -191,6 +191,9 @@ class Recepcionista(models.Model):
     
     def __str__(self):
         return f"{self.usuario.nombre} - {self.area_trabajo}"
+    
+    def __str__(self):
+        return f"{self.usuario.nombre} - {self.area_trabajo}"
 
 
 # Modelo de Paciente
@@ -281,11 +284,10 @@ class Cita(models.Model):
 
 # Modelo de Receta Médica
 class RecetaMedica(models.Model):
-    cita = models.ForeignKey(Cita, on_delete=models.CASCADE, related_name='recetas')
+    cita = models.ForeignKey(Cita, on_delete=models.SET_NULL, related_name='recetas', null=True, blank=True)
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='recetas')
     medico = models.ForeignKey(Medico, on_delete=models.CASCADE, related_name='recetas_emitidas')
-    medicamentos = models.TextField(verbose_name='Medicamentos (detalle, dosis y frecuencia)')
-    indicaciones = models.TextField()
+    indicaciones = models.TextField(verbose_name='Indicaciones Preventivas')
     fecha_emision = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Emisión')
     vigencia = models.DateField(verbose_name='Vigencia hasta')
     
@@ -319,5 +321,56 @@ class SignosVitales(models.Model):
         ordering = ['-fecha_hora']
     
     def __str__(self):
-        return f"Signos Vitales de {self.paciente.nombre} ({self.fecha_hora.strftime('%d/%m/%Y %H:%M')})"
+        return f"Signos Vitales - {self.paciente.nombre} ({self.fecha_hora.strftime('%d/%m/%Y %H:%M')})"
 
+
+# Modelo de Medicamento para Inventario
+class Medicamento(models.Model):
+    nombre = models.CharField(max_length=200, verbose_name='Nombre del Medicamento')
+    gramos = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Gramos/Miligramos', help_text='Concentración del medicamento')
+    cantidad = models.IntegerField(verbose_name='Cantidad en Stock', default=0)
+    descripcion = models.TextField(verbose_name='Descripción', blank=True, null=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Medicamento'
+        verbose_name_plural = 'Medicamentos'
+        ordering = ['nombre']
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.gramos}g (Stock: {self.cantidad})"
+    
+    def tiene_stock(self):
+        """Verifica si hay stock disponible"""
+        return self.cantidad > 0
+    
+    def descontar_stock(self, cantidad):
+        """Descuenta cantidad del stock"""
+        if self.cantidad >= cantidad:
+            self.cantidad -= cantidad
+            self.save()
+            return True
+        return False
+
+
+# Modelo de Relación entre Receta y Medicamentos
+class RecetaMedicamento(models.Model):
+    receta = models.ForeignKey(RecetaMedica, on_delete=models.CASCADE, related_name='medicamentos_recetados')
+    medicamento = models.ForeignKey(Medicamento, on_delete=models.CASCADE, related_name='recetas')
+    cantidad_recetada = models.IntegerField(verbose_name='Cantidad Recetada', default=1)
+    dosis = models.CharField(max_length=200, verbose_name='Dosis', help_text='Ej: 1 comprimido cada 8 horas')
+    fecha_agregado = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Medicamento en Receta'
+        verbose_name_plural = 'Medicamentos en Recetas'
+    
+    def __str__(self):
+        return f"{self.medicamento.nombre} - Cantidad: {self.cantidad_recetada}"
+    
+    def save(self, *args, **kwargs):
+        """Al guardar, descuenta el stock automáticamente"""
+        if not self.pk:  # Solo si es nuevo
+            self.medicamento.descontar_stock(self.cantidad_recetada)
+        super().save(*args, **kwargs)

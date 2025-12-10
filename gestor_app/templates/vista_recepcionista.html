@@ -123,7 +123,7 @@
                                     <td><strong>{{ cita.fecha_hora|date:"H:i" }}</strong></td>
                                     <td>{{ cita.paciente.nombre }}</td>
                                     <td>{{ cita.paciente.rut }}</td>
-                                    <td>Dr./Dra. {{ cita.medico.nombre }}</td>
+                                    <td>Dr./Dra. {{ cita.medico.usuario.nombre }}</td>
                                     <td>{{ cita.motivo }}</td>
                                     <td>
                                         {% if cita.estado == 'pendiente' %}
@@ -139,10 +139,10 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-eye"></i>
+                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary" title="Ver detalles">
+                                            <i class="bi bi-eye"></i> Ver
                                         </a>
-                                        <a href="{% url 'editar_cita' cita.id %}" class="btn btn-sm btn-warning">
+                                        <a href="{% url 'editar_cita' cita.id %}" class="btn btn-sm btn-warning" title="Editar">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                     </td>

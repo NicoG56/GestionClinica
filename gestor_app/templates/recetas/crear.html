@@ -5,8 +5,10 @@
     <h2 class="mb-4"><i class="bi bi-prescription2"></i> Emitir Receta Médica</h2>
     <div class="card">
         <div class="card-body">
-            <form method="post">
+            <form method="post" id="recetaForm">
                 {% csrf_token %}
+                
+                <!-- Campos básicos de la receta -->
                 {% for field in form %}
                 <div class="mb-3">
                     <label class="form-label">{{ field.label }}</label>
@@ -15,6 +17,59 @@
                     {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
                 </div>
                 {% endfor %}
+
+                <!-- Sección de medicamentos -->
+                <div class="mb-4">
+                    <h5 class="mb-3"><i class="bi bi-capsule"></i> Medicamentos</h5>
+                    
+                    <!-- Buscador de medicamentos -->
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Buscar Medicamento</label>
+                                    <select class="form-select" id="medicamentoSelect">
+                                        <option value="">-- Seleccione un medicamento --</option>
+                                        {% for med in medicamentos_disponibles %}
+                                        <option value="{{ med.id }}" 
+                                                data-nombre="{{ med.nombre }}" 
+                                                data-gramos="{{ med.gramos }}"
+                                                data-stock="{{ med.cantidad }}"
+                                                data-descripcion="{{ med.descripcion }}">
+                                            {{ med.nombre }} - {{ med.gramos }}g (Stock: {{ med.cantidad }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Cantidad</label>
+                                    <input type="number" class="form-control" id="cantidadInput" min="1" value="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-success w-100" onclick="agregarMedicamento()">
+                                        <i class="bi bi-plus-circle"></i> Agregar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <label class="form-label">Dosis e Indicaciones</label>
+                                    <input type="text" class="form-control" id="dosisInput" 
+                                           placeholder="Ej: 1 comprimido cada 8 horas por 5 días">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de medicamentos agregados -->
+                    <div id="medicamentosAgregados">
+                        <div class="alert alert-info" id="noMedicamentos">
+                            <i class="bi bi-info-circle"></i> No hay medicamentos agregados. Use el selector arriba para agregar medicamentos a la receta.
+                        </div>
+                    </div>
+                </div>
+
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Emitir Receta</button>
                     <a href="{% url 'lista_recetas' %}" class="btn btn-secondary">Cancelar</a>
@@ -23,4 +78,136 @@
         </div>
     </div>
 </div>
+
+<script>
+let medicamentosLista = [];
+
+function agregarMedicamento() {
+    const select = document.getElementById('medicamentoSelect');
+    const cantidadInput = document.getElementById('cantidadInput');
+    const dosisInput = document.getElementById('dosisInput');
+    
+    if (!select.value) {
+        alert('Por favor seleccione un medicamento');
+        return;
+    }
+    
+    if (!cantidadInput.value || cantidadInput.value < 1) {
+        alert('Por favor ingrese una cantidad válida');
+        return;
+    }
+    
+    if (!dosisInput.value.trim()) {
+        alert('Por favor ingrese la dosis e indicaciones');
+        return;
+    }
+    
+    const option = select.options[select.selectedIndex];
+    const medicamentoId = select.value;
+    const nombre = option.dataset.nombre;
+    const gramos = option.dataset.gramos;
+    const stock = parseInt(option.dataset.stock);
+    const cantidad = parseInt(cantidadInput.value);
+    const dosis = dosisInput.value.trim();
+    
+    // Validar stock
+    if (cantidad > stock) {
+        alert(`Stock insuficiente. Disponible: ${stock} unidades`);
+        return;
+    }
+    
+    // Verificar si ya está agregado
+    const yaAgregado = medicamentosLista.find(m => m.id === medicamentoId);
+    if (yaAgregado) {
+        alert('Este medicamento ya está en la lista');
+        return;
+    }
+    
+    // Agregar a la lista
+    medicamentosLista.push({
+        id: medicamentoId,
+        nombre: nombre,
+        gramos: gramos,
+        stock: stock,
+        cantidad: cantidad,
+        dosis: dosis
+    });
+    
+    // Actualizar vista
+    actualizarListaMedicamentos();
+    
+    // Limpiar inputs
+    select.value = '';
+    cantidadInput.value = 1;
+    dosisInput.value = '';
+}
+
+function eliminarMedicamento(index) {
+    medicamentosLista.splice(index, 1);
+    actualizarListaMedicamentos();
+}
+
+function actualizarListaMedicamentos() {
+    const container = document.getElementById('medicamentosAgregados');
+    const noMedicamentos = document.getElementById('noMedicamentos');
+    
+    if (medicamentosLista.length === 0) {
+        noMedicamentos.style.display = 'block';
+        container.innerHTML = '<div class="alert alert-info" id="noMedicamentos"><i class="bi bi-info-circle"></i> No hay medicamentos agregados. Use el selector arriba para agregar medicamentos a la receta.</div>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-bordered table-hover"><thead class="table-primary"><tr><th>Medicamento</th><th>Concentración</th><th>Cantidad</th><th>Dosis</th><th>Acción</th></tr></thead><tbody>';
+    
+    medicamentosLista.forEach((med, index) => {
+        html += `
+            <tr>
+                <td><strong>${med.nombre}</strong></td>
+                <td>${med.gramos}g</td>
+                <td>${med.cantidad} unidad(es)</td>
+                <td>${med.dosis}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="eliminarMedicamento(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// Al enviar el formulario, agregar los campos ocultos
+document.getElementById('recetaForm').addEventListener('submit', function(e) {
+    if (medicamentosLista.length === 0) {
+        e.preventDefault();
+        alert('Debe agregar al menos un medicamento a la receta');
+        return false;
+    }
+    
+    // Agregar campos ocultos con los datos de los medicamentos
+    medicamentosLista.forEach(med => {
+        const inputId = document.createElement('input');
+        inputId.type = 'hidden';
+        inputId.name = 'medicamento_id[]';
+        inputId.value = med.id;
+        this.appendChild(inputId);
+        
+        const inputCantidad = document.createElement('input');
+        inputCantidad.type = 'hidden';
+        inputCantidad.name = 'cantidad[]';
+        inputCantidad.value = med.cantidad;
+        this.appendChild(inputCantidad);
+        
+        const inputDosis = document.createElement('input');
+        inputDosis.type = 'hidden';
+        inputDosis.name = 'dosis[]';
+        inputDosis.value = med.dosis;
+        this.appendChild(inputDosis);
+    });
+});
+</script>
+
 {% endblock %}

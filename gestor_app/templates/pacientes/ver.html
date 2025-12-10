@@ -5,7 +5,7 @@
     <div class="row mb-4">
         <div class="col"><h2><i class="bi bi-person"></i> {{ paciente.nombre }}</h2><p class="text-muted">RUT: {{ paciente.rut }}</p></div>
         <div class="col-auto">
-            {% if user.rol in 'administrador,enfermera,recepcionista' %}
+            {% if user.rol in 'administrador,medico' %}
             <a href="{% url 'editar_paciente' paciente.id %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Editar</a>
             {% endif %}
             <a href="{% url 'lista_pacientes' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
@@ -28,12 +28,12 @@
             </div>
             {% if historia %}
             <div class="card">
-                <div class="card-header bg-success text-white"><h6 class="mb-0">Historia Clínica</h6></div>
+                <div class="card-header bg-success text-white"><h6 class="mb-0">Antecedentes Patológicos</h6></div>
                 <div class="card-body">
                     <p><strong>Grupo Sanguíneo:</strong> {{ historia.grupo_sanguineo|default:"-" }}</p>
                     <p><strong>Alergias:</strong> {{ historia.alergias|default:"Ninguna" }}</p>
                     <p><strong>Enfermedades Crónicas:</strong> {{ historia.enfermedades_cronicas|default:"Ninguna" }}</p>
-                    {% if user.rol in 'administrador,enfermera,recepcionista' %}
+                    {% if user.rol in 'administrador,medico' %}
                     <a href="{% url 'editar_historia' historia.id %}" class="btn btn-sm btn-warning">Editar</a>
                     {% endif %}
                 </div>
@@ -41,9 +41,9 @@
             {% else %}
             <div class="card">
                 <div class="card-body text-center">
-                    <p>No tiene historia clínica</p>
-                    {% if user.rol in 'administrador,enfermera,recepcionista' %}
-                    <a href="{% url 'crear_historia' paciente.id %}" class="btn btn-primary">Crear Historia</a>
+                    <p>No tiene antecedentes patológicos registrados</p>
+                    {% if user.rol in 'administrador,medico' %}
+                    <a href="{% url 'crear_historia' paciente.id %}" class="btn btn-primary">Crear Antecedentes</a>
                     {% endif %}
                 </div>
             </div>

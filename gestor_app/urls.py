@@ -47,4 +47,11 @@ urlpatterns = [
     # Signos Vitales (Enfermeras)
     path('signos/', views.lista_signos, name='lista_signos'),
     path('signos/registrar/', views.registrar_signos, name='registrar_signos'),
+    
+    # Gestión de Medicamentos (Administrador)
+    path('medicamentos/', views.lista_medicamentos, name='lista_medicamentos'),
+    path('medicamentos/crear/', views.crear_medicamento, name='crear_medicamento'),
+    path('medicamentos/<int:medicamento_id>/editar/', views.editar_medicamento, name='editar_medicamento'),
+    path('medicamentos/<int:medicamento_id>/eliminar/', views.eliminar_medicamento, name='eliminar_medicamento'),
+    path('api/medicamentos/buscar/', views.buscar_medicamentos, name='buscar_medicamentos'),
 ]

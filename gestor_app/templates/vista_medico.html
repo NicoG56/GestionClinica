@@ -133,11 +133,11 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-eye"></i>
+                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary" title="Ver detalles">
+                                            <i class="bi bi-eye"></i> Ver
                                         </a>
-                                        <a href="{% url 'editar_cita' cita.id %}" class="btn btn-sm btn-warning">
-                                            <i class="bi bi-pencil"></i>
+                                        <a href="{% url 'editar_cita' cita.id %}" class="btn btn-sm btn-warning" title="Agregar observaciones">
+                                            <i class="bi bi-chat-left-text"></i>
                                         </a>
                                     </td>
                                 </tr>

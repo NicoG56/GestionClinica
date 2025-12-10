@@ -11,10 +11,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita, RecetaMedica, HistoriaClinica, SignosVitales
+from .models import CustomUser, Medico, Enfermera, Recepcionista, Paciente, Cita, RecetaMedica, HistoriaClinica, SignosVitales, Medicamento, RecetaMedicamento
 from .forms import (
     LoginForm, CustomUserCreationForm, CustomUserEditForm, MedicoForm, EnfermeraForm, RecepcionistaForm,
-    PacienteForm, HistoriaClinicaForm, CitaForm, RecetaMedicaForm, SignosVitalesForm, CitaMedicoForm
+    PacienteForm, HistoriaClinicaForm, CitaForm, RecetaMedicaForm, SignosVitalesForm, CitaMedicoForm, MedicamentoForm
 )
 
 # Decoradores de permisos
@@ -38,8 +38,8 @@ def puede_ver_pacientes(user):
     return user.is_authenticated and user.rol in ['administrador', 'medico', 'enfermera', 'recepcionista']
 
 def puede_editar_pacientes(user):
-    """Permite editar datos personales de pacientes (NO incluye médicos)"""
-    return user.is_authenticated and user.rol in ['administrador', 'enfermera', 'recepcionista']
+    """Permite editar datos personales de pacientes (solo administrador y médico)"""
+    return user.is_authenticated and user.rol in ['administrador', 'medico']
 
 def puede_gestionar_citas(user):
     return user.is_authenticated and user.rol in ['administrador', 'recepcionista']
@@ -101,9 +101,15 @@ def dashboard(request):
 @login_required
 @user_passes_test(es_administrador)
 def dashboard_administrador(request):
+    from datetime import datetime, time
+    import zoneinfo
+    tz_local = zoneinfo.ZoneInfo('America/Santiago')
+    hoy = timezone.now().astimezone(tz_local).date()
+    inicio_dia = timezone.make_aware(datetime.combine(hoy, time.min))
+    fin_dia = timezone.make_aware(datetime.combine(hoy, time.max))
     total_usuarios = CustomUser.objects.count()
     total_pacientes = Paciente.objects.count()
-    total_citas_hoy = Cita.objects.filter(fecha_hora__date=timezone.now().date()).count()
+    citas_hoy = Cita.objects.filter(fecha_hora__range=(inicio_dia, fin_dia)).order_by('fecha_hora')
     
     usuarios_recientes = CustomUser.objects.order_by('-fecha_creacion')[:5]
     
@@ -111,7 +117,8 @@ def dashboard_administrador(request):
         'usuario': request.user,
         'total_usuarios': total_usuarios,
         'total_pacientes': total_pacientes,
-        'total_citas_hoy': total_citas_hoy,
+        'total_citas_hoy': citas_hoy.count(),
+        'citas_hoy': citas_hoy,
         'usuarios_recientes': usuarios_recientes,
     }
     
@@ -128,18 +135,26 @@ def dashboard_medico(request):
         messages.error(request, 'No se encontró el perfil de médico asociado.')
         return redirect('login')
     
-    hoy = timezone.now().date()
+    from datetime import datetime, time
+    import zoneinfo
+    tz_local = zoneinfo.ZoneInfo('America/Santiago')
+    hoy = timezone.now().astimezone(tz_local).date()
+    fecha_limite = hoy + timezone.timedelta(days=5)
+    inicio_dia = timezone.make_aware(datetime.combine(hoy, time.min))
+    fin_dia = timezone.make_aware(datetime.combine(hoy, time.max))
+    inicio_limite = timezone.make_aware(datetime.combine(hoy + timezone.timedelta(days=1), time.min))
+    fin_limite = timezone.make_aware(datetime.combine(fecha_limite, time.max))
     
     citas_hoy = Cita.objects.filter(
         medico=medico,
-        fecha_hora__date=hoy
+        fecha_hora__range=(inicio_dia, fin_dia)
     ).order_by('fecha_hora')
     
     citas_proximas = Cita.objects.filter(
         medico=medico,
-        fecha_hora__date__gt=hoy,
+        fecha_hora__range=(inicio_limite, fin_limite),
         estado__in=['pendiente', 'confirmada']
-    ).order_by('fecha_hora')[:5]
+    ).order_by('fecha_hora')
     
     # Total de pacientes atendidos por este médico
     pacientes_atendidos = Cita.objects.filter(medico=medico).values('paciente').distinct().count()
@@ -162,20 +177,36 @@ def dashboard_medico(request):
 @login_required
 @user_passes_test(es_enfermera)
 def dashboard_enfermera(request):
-    hoy = timezone.now().date()
+    from datetime import datetime, time
+    import zoneinfo
+    tz_local = zoneinfo.ZoneInfo('America/Santiago')
+    hoy = timezone.now().astimezone(tz_local).date()
+    inicio_dia = timezone.make_aware(datetime.combine(hoy, time.min))
+    fin_dia = timezone.make_aware(datetime.combine(hoy, time.max))
     
     citas_hoy = Cita.objects.filter(
-        fecha_hora__date=hoy,
+        fecha_hora__range=(inicio_dia, fin_dia),
         estado__in=['confirmada', 'en_curso']
     ).order_by('fecha_hora')
     
     signos_hoy = SignosVitales.objects.filter(
-        fecha_hora__date=hoy
+        fecha_hora__range=(inicio_dia, fin_dia)
     ).count()
+    
+    # Próximas citas (próximos 5 días)
+    fecha_limite = hoy + timezone.timedelta(days=5)
+    inicio_limite = timezone.make_aware(datetime.combine(hoy + timezone.timedelta(days=1), time.min))
+    fin_limite = timezone.make_aware(datetime.combine(fecha_limite, time.max))
+    
+    citas_proximas = Cita.objects.filter(
+        fecha_hora__range=(inicio_limite, fin_limite),
+        estado__in=['pendiente', 'confirmada']
+    ).order_by('fecha_hora')
     
     context = {
         'usuario': request.user,
         'citas_hoy': citas_hoy,
+        'citas_proximas': citas_proximas,
         'signos_hoy': signos_hoy,
     }
     
@@ -186,9 +217,14 @@ def dashboard_enfermera(request):
 @login_required
 @user_passes_test(es_recepcionista)
 def dashboard_recepcionista(request):
-    hoy = timezone.now().date()
+    from datetime import datetime, time
+    import zoneinfo
+    tz_local = zoneinfo.ZoneInfo('America/Santiago')
+    hoy = timezone.now().astimezone(tz_local).date()
+    inicio_dia = timezone.make_aware(datetime.combine(hoy, time.min))
+    fin_dia = timezone.make_aware(datetime.combine(hoy, time.max))
     
-    citas_hoy = Cita.objects.filter(fecha_hora__date=hoy).order_by('fecha_hora')
+    citas_hoy = Cita.objects.filter(fecha_hora__range=(inicio_dia, fin_dia)).order_by('fecha_hora')
     citas_pendientes = Cita.objects.filter(estado='pendiente', fecha_hora__gte=timezone.now()).count()
     total_pacientes = Paciente.objects.count()
     
@@ -528,9 +564,15 @@ def ver_cita(request, cita_id):
     
     # Verificar permisos
     user = request.user
-    if user.rol == 'medico' and cita.medico != user:
-        messages.error(request, 'No tiene permisos para ver esta cita')
-        return redirect('lista_citas')
+    if user.rol == 'medico':
+        try:
+            # Verificar que el médico esté viendo sus propias citas
+            if cita.medico != user.medico:
+                messages.error(request, 'No tiene permisos para ver esta cita')
+                return redirect('lista_citas')
+        except Medico.DoesNotExist:
+            messages.error(request, 'No se encontró el perfil de médico')
+            return redirect('lista_citas')
     
     recetas = RecetaMedica.objects.filter(cita=cita)
     signos = SignosVitales.objects.filter(cita=cita)
@@ -546,24 +588,46 @@ def ver_cita(request, cita_id):
 
 @login_required
 def editar_cita(request, cita_id):
+    from datetime import datetime, time
+    import zoneinfo
+    
     cita = get_object_or_404(Cita, id=cita_id)
     user = request.user
     
-    # Médicos solo pueden actualizar estado, diagnóstico y tratamiento
+    # Médicos pueden editar solo observaciones de citas del mismo día
     if user.rol == 'medico':
-        if cita.medico != user:
-            messages.error(request, 'No tiene permisos para editar esta cita')
-            return redirect('lista_citas')
-        
-        if request.method == 'POST':
-            form = CitaMedicoForm(request.POST, instance=cita)
-            if form.is_valid():
-                form.save()
-                messages.success(request, 'Cita actualizada exitosamente')
+        try:
+            # Verificar que la cita es del médico
+            if cita.medico != user.medico:
+                messages.error(request, 'No tiene permisos para editar esta cita')
+                return redirect('lista_citas')
+            
+            # Verificar que la cita es del día actual
+            tz_local = zoneinfo.ZoneInfo('America/Santiago')
+            hoy = timezone.now().astimezone(tz_local).date()
+            fecha_cita = cita.fecha_hora.astimezone(tz_local).date()
+            
+            if fecha_cita != hoy:
+                messages.error(request, 'Solo puede agregar observaciones a citas del día actual')
                 return redirect('ver_cita', cita_id=cita.id)
-        else:
-            form = CitaMedicoForm(instance=cita)
-    else:
+            
+            # Médicos solo pueden editar observaciones
+            if request.method == 'POST':
+                observaciones = request.POST.get('observaciones', '')
+                cita.observaciones = observaciones
+                cita.save()
+                messages.success(request, 'Observaciones agregadas exitosamente')
+                return redirect('ver_cita', cita_id=cita.id)
+            
+            # Renderizar formulario simple solo con observaciones
+            return render(request, 'citas/editar_observaciones.html', {'cita': cita})
+            
+        except Medico.DoesNotExist:
+            messages.error(request, 'No se encontró el perfil de médico')
+            return redirect('lista_citas')
+    
+    # Recepcionistas y administradores pueden editar todo
+    if True:
         # Recepcionistas y administradores pueden editar todo
         if request.method == 'POST':
             form = CitaForm(request.POST, instance=cita)
@@ -605,15 +669,57 @@ def crear_receta(request):
     if request.method == 'POST':
         form = RecetaMedicaForm(request.POST, medico=medico)
         if form.is_valid():
+            # Guardar la receta base
             receta = form.save(commit=False)
             receta.medico = medico
             receta.save()
+            
+            # Procesar medicamentos del formulario
+            medicamentos_ids = request.POST.getlist('medicamento_id[]')
+            cantidades = request.POST.getlist('cantidad[]')
+            dosis_list = request.POST.getlist('dosis[]')
+            
+            if not medicamentos_ids:
+                messages.warning(request, 'Debe agregar al menos un medicamento a la receta.')
+                receta.delete()
+                return render(request, 'recetas/crear.html', {'form': form})
+            
+            # Crear los registros de RecetaMedicamento
+            for med_id, cantidad, dosis in zip(medicamentos_ids, cantidades, dosis_list):
+                try:
+                    medicamento = Medicamento.objects.get(id=med_id)
+                    cantidad_int = int(cantidad)
+                    
+                    # Validar stock disponible
+                    if medicamento.cantidad < cantidad_int:
+                        messages.error(request, f'Stock insuficiente para {medicamento.nombre}. Disponible: {medicamento.cantidad}')
+                        receta.delete()
+                        return render(request, 'recetas/crear.html', {'form': form})
+                    
+                    # Crear el registro (el stock se descuenta automáticamente en save())
+                    RecetaMedicamento.objects.create(
+                        receta=receta,
+                        medicamento=medicamento,
+                        cantidad_recetada=cantidad_int,
+                        dosis=dosis
+                    )
+                except (Medicamento.DoesNotExist, ValueError) as e:
+                    messages.error(request, f'Error al procesar medicamento: {str(e)}')
+                    receta.delete()
+                    return render(request, 'recetas/crear.html', {'form': form})
+            
             messages.success(request, f'Receta emitida exitosamente para {receta.paciente.nombre}')
             return redirect('lista_recetas')
     else:
         form = RecetaMedicaForm(medico=medico)
     
-    return render(request, 'recetas/crear.html', {'form': form})
+    # Obtener medicamentos disponibles para el template
+    medicamentos_disponibles = Medicamento.objects.filter(cantidad__gt=0).order_by('nombre')
+    
+    return render(request, 'recetas/crear.html', {
+        'form': form,
+        'medicamentos_disponibles': medicamentos_disponibles
+    })
 
 
 @login_required
@@ -726,8 +832,35 @@ def descargar_receta_pdf(request, receta_id):
     
     # Medicamentos
     elements.append(Paragraph("<b>MEDICAMENTOS PRESCRITOS</b>", heading_style))
-    medicamentos_paragraph = Paragraph(receta.medicamentos.replace('\n', '<br/>'), normal_style)
-    elements.append(medicamentos_paragraph)
+    medicamentos_recetados = receta.medicamentos_recetados.all()
+    
+    if medicamentos_recetados:
+        # Nuevo formato: medicamentos desde inventario
+        medicamentos_data = [['Medicamento', 'Concentración', 'Cantidad', 'Dosis e Indicaciones']]
+        for med_receta in medicamentos_recetados:
+            medicamentos_data.append([
+                med_receta.medicamento.nombre,
+                f"{med_receta.medicamento.gramos}g",
+                str(med_receta.cantidad_recetada),
+                med_receta.dosis
+            ])
+        
+        medicamentos_table = Table(medicamentos_data, colWidths=[2*inch, 1*inch, 0.8*inch, 2.7*inch])
+        medicamentos_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0066cc')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0f0f0')]),
+        ]))
+        elements.append(medicamentos_table)
+    else:
+        elements.append(Paragraph("<i>No hay medicamentos prescritos</i>", normal_style))
+    
     elements.append(Spacer(1, 0.2*inch))
     
     # Indicaciones
@@ -814,7 +947,7 @@ def lista_signos(request):
 # ============= GESTIÓN DE HISTORIA CLÍNICA =============
 
 @login_required
-@user_passes_test(lambda u: u.rol in ['medico', 'enfermera', 'administrador'])
+@user_passes_test(lambda u: u.rol in ['medico', 'administrador'])
 def crear_historia(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     
@@ -841,7 +974,7 @@ def crear_historia(request, paciente_id):
 
 
 @login_required
-@user_passes_test(lambda u: u.rol in ['medico', 'enfermera', 'administrador'])
+@user_passes_test(lambda u: u.rol in ['medico', 'administrador'])
 def editar_historia(request, historia_id):
     historia = get_object_or_404(HistoriaClinica, id=historia_id)
     
@@ -857,3 +990,81 @@ def editar_historia(request, historia_id):
         form = HistoriaClinicaForm(instance=historia)
     
     return render(request, 'historia/editar.html', {'form': form, 'historia': historia})
+
+
+# ============= GESTIÓN DE MEDICAMENTOS (Administrador) =============
+
+@login_required
+@user_passes_test(es_administrador)
+def lista_medicamentos(request):
+    medicamentos = Medicamento.objects.all().order_by('nombre')
+    
+    context = {
+        'medicamentos': medicamentos,
+    }
+    
+    return render(request, 'medicamentos/lista.html', context)
+
+
+@login_required
+@user_passes_test(es_administrador)
+def crear_medicamento(request):
+    if request.method == 'POST':
+        form = MedicamentoForm(request.POST)
+        if form.is_valid():
+            medicamento = form.save()
+            messages.success(request, f'Medicamento {medicamento.nombre} creado exitosamente')
+            return redirect('lista_medicamentos')
+    else:
+        form = MedicamentoForm()
+    
+    return render(request, 'medicamentos/crear.html', {'form': form})
+
+
+@login_required
+@user_passes_test(es_administrador)
+def editar_medicamento(request, medicamento_id):
+    medicamento = get_object_or_404(Medicamento, id=medicamento_id)
+    
+    if request.method == 'POST':
+        form = MedicamentoForm(request.POST, instance=medicamento)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Medicamento {medicamento.nombre} actualizado exitosamente')
+            return redirect('lista_medicamentos')
+    else:
+        form = MedicamentoForm(instance=medicamento)
+    
+    return render(request, 'medicamentos/editar.html', {'form': form, 'medicamento': medicamento})
+
+
+@login_required
+@user_passes_test(es_administrador)
+def eliminar_medicamento(request, medicamento_id):
+    medicamento = get_object_or_404(Medicamento, id=medicamento_id)
+    
+    if request.method == 'POST':
+        nombre = medicamento.nombre
+        medicamento.delete()
+        messages.success(request, f'Medicamento {nombre} eliminado exitosamente')
+        return redirect('lista_medicamentos')
+    
+    return render(request, 'medicamentos/eliminar.html', {'medicamento': medicamento})
+
+
+@login_required
+def buscar_medicamentos(request):
+    """API para buscar medicamentos con stock disponible (para médicos)"""
+    from django.http import JsonResponse
+    
+    query = request.GET.get('q', '')
+    
+    if len(query) < 2:
+        return JsonResponse({'medicamentos': []})
+    
+    medicamentos = Medicamento.objects.filter(
+        nombre__icontains=query,
+        cantidad__gt=0
+    ).values('id', 'nombre', 'gramos', 'cantidad', 'descripcion')[:10]
+    
+    return JsonResponse({'medicamentos': list(medicamentos)})

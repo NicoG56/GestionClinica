@@ -9,9 +9,14 @@
         </div>
         <div class="col-auto">
             {% if user.rol == 'medico' %}
-            <a href="{% url 'editar_cita' cita.id %}" class="btn btn-warning">
-                <i class="bi bi-pencil"></i> Editar
-            </a>
+                {% load tz %}
+                {% timezone "America/Santiago" %}
+                    {% if cita.fecha_hora|date:"Y-m-d" == now|date:"Y-m-d" %}
+                    <a href="{% url 'editar_cita' cita.id %}" class="btn btn-warning">
+                        <i class="bi bi-chat-left-text"></i> Agregar Observaciones
+                    </a>
+                    {% endif %}
+                {% endtimezone %}
             {% endif %}
             <a href="{% url 'lista_citas' %}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Volver
@@ -94,9 +99,14 @@
                     <i class="bi bi-clipboard-x" style="font-size: 3rem;"></i>
                     <p class="mt-2">No hay información médica registrada para esta cita</p>
                     {% if user.rol == 'medico' %}
-                    <a href="{% url 'editar_cita' cita.id %}" class="btn btn-primary">
-                        <i class="bi bi-pencil"></i> Agregar Información Médica
-                    </a>
+                        {% load tz %}
+                        {% timezone "America/Santiago" %}
+                            {% if cita.fecha_hora|date:"Y-m-d" == now|date:"Y-m-d" %}
+                            <a href="{% url 'editar_cita' cita.id %}" class="btn btn-primary">
+                                <i class="bi bi-chat-left-text"></i> Agregar Observaciones
+                            </a>
+                            {% endif %}
+                        {% endtimezone %}
                     {% endif %}
                 </div>
             </div>
@@ -132,15 +142,15 @@
                     <a href="{% url 'ver_paciente' cita.paciente.id %}" class="btn btn-outline-primary w-100 mb-2">
                         <i class="bi bi-person-lines-fill"></i> Ver Historia del Paciente
                     </a>
-                    
                     {% if user.rol == 'medico' %}
-                    <a href="{% url 'crear_receta' %}?paciente={{ cita.paciente.id }}" class="btn btn-outline-success w-100 mb-2">
-                        <i class="bi bi-prescription2"></i> Emitir Receta
-                    </a>
-                    
-                    <a href="{% url 'editar_cita' cita.id %}" class="btn btn-outline-warning w-100">
-                        <i class="bi bi-pencil"></i> Editar Consulta
-                    </a>
+                        {% load tz %}
+                        {% timezone "America/Santiago" %}
+                            {% if cita.fecha_hora|date:"Y-m-d" == now|date:"Y-m-d" %}
+                            <a href="{% url 'editar_cita' cita.id %}" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-chat-left-text"></i> Agregar Observaciones
+                            </a>
+                            {% endif %}
+                        {% endtimezone %}
                     {% endif %}
                 </div>
             </div>

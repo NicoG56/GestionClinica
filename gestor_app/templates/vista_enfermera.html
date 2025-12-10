@@ -13,7 +13,7 @@
     
     <!-- Estadísticas -->
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -27,12 +27,26 @@
             </div>
         </div>
         
-        <div class="col-md-6">
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Próximas Citas</h6>
+                            <h2 class="card-title mb-0">{{ citas_proximas|length }}</h2>
+                        </div>
+                        <i class="bi bi-clock-history display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-2">Signos Vitales Inscritos Hoy</h6>
+                            <h6 class="card-subtitle mb-2">Signos Vitales Hoy</h6>
                             <h2 class="card-title mb-0">{{ signos_hoy }}</h2>
                         </div>
                         <i class="bi bi-clipboard2-pulse display-4 opacity-50"></i>
@@ -100,7 +114,7 @@
                                 <tr>
                                     <td>{{ cita.fecha_hora|date:"H:i" }}</td>
                                     <td>{{ cita.paciente.nombre }}</td>
-                                    <td>Dr./Dra. {{ cita.medico.nombre }}</td>
+                                    <td>Dr./Dra. {{ cita.medico.usuario.nombre }}</td>
                                     <td>
                                         {% if cita.estado == 'confirmada' %}
                                         <span class="badge bg-info">{{ cita.get_estado_display }}</span>
@@ -113,10 +127,10 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary">
+                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary" title="Ver detalles">
                                             <i class="bi bi-eye"></i> Ver
                                         </a>
-                                        <a href="{% url 'ver_paciente' cita.paciente.id %}" class="btn btn-sm btn-info">
+                                        <a href="{% url 'ver_paciente' cita.paciente.id %}" class="btn btn-sm btn-info" title="Ver paciente">
                                             <i class="bi bi-person"></i> Paciente
                                         </a>
                                     </td>
@@ -127,6 +141,61 @@
                     </div>
                     {% else %}
                     <p class="text-muted text-center mb-0">No hay citas programadas para hoy</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Próximas Citas -->
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Próximas Citas (5 días)</h5>
+                </div>
+                <div class="card-body">
+                    {% if citas_proximas %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Paciente</th>
+                                    <th>Médico</th>
+                                    <th>Motivo</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cita in citas_proximas %}
+                                <tr>
+                                    <td><strong>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</strong></td>
+                                    <td>{{ cita.paciente.nombre }}</td>
+                                    <td>Dr./Dra. {{ cita.medico.usuario.nombre }}</td>
+                                    <td>{{ cita.motivo|truncatewords:5 }}</td>
+                                    <td>
+                                        {% if cita.estado == 'pendiente' %}
+                                        <span class="badge bg-warning">{{ cita.get_estado_display }}</span>
+                                        {% elif cita.estado == 'confirmada' %}
+                                        <span class="badge bg-info">{{ cita.get_estado_display }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ cita.get_estado_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'ver_cita' cita.id %}" class="btn btn-sm btn-primary" title="Ver detalles">
+                                            <i class="bi bi-eye"></i> Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No hay citas próximas en los siguientes 5 días</p>
                     {% endif %}
                 </div>
             </div>

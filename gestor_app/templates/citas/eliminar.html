@@ -10,7 +10,7 @@
                     <p>¿Está seguro que desea cancelar esta cita?</p>
                     <ul>
                         <li><strong>Paciente:</strong> {{ cita.paciente.nombre }}</li>
-                        <li><strong>Médico:</strong> {{ cita.medico.nombre }}</li>
+                        <li><strong>Médico:</strong> {{ cita.medico.usuario.nombre }}</li>
                         <li><strong>Fecha:</strong> {{ cita.fecha_hora|date:"d/m/Y H:i" }}</li>
                     </ul>
                     <form method="post" class="d-flex gap-2">
