@@ -1,6 +1,6 @@
 # Sistema de Gestión Clínica
 
-Sistema completo de gestión clínica desarrollado en Django con control de acceso por roles (Administrador, Médico, Enfermera, Recepcionista). Incluye gestión de pacientes, citas médicas, historias clínicas, recetas médicas con inventario de medicamentos, y signos vitales.
+Sistema de gestión clínica desarrollado en Django con control de acceso por roles (Administrador, Médico, Enfermera, Recepcionista). Incluye gestión de pacientes, citas médicas, historias clínicas, recetas médicas con inventario de medicamentos, y signos vitales.
 
 ## Requisitos
 

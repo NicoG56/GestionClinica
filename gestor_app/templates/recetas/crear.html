@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Crear Receta{% endblock %}
+
+{% block extra_css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <h2 class="mb-4"><i class="bi bi-prescription2"></i> Emitir Receta Médica</h2>
@@ -12,7 +19,18 @@
                 {% for field in form %}
                 <div class="mb-3">
                     <label class="form-label">{{ field.label }}</label>
-                    {{ field }}
+                    {% if field.name == 'paciente' %}
+                        <select name="{{ field.name }}" id="id_{{ field.name }}" class="form-select" required>
+                            <option value="">-- Buscar paciente por nombre o RUT --</option>
+                            {% for choice in field.field.choices %}
+                                {% if choice.0 %}
+                                <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
                     {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
                     {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
                 </div>
@@ -210,4 +228,31 @@ document.getElementById('recetaForm').addEventListener('submit', function(e) {
 });
 </script>
 
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery (necesario para Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+// Inicializar Select2 para búsqueda de pacientes
+$(document).ready(function() {
+    $('#id_paciente').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Buscar paciente por nombre o RUT...',
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron pacientes";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
