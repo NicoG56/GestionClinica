@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
 from django.http import HttpResponse
+from django.core.paginator import Paginator
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -250,8 +251,14 @@ def lista_usuarios(request):
     if rol_filter:
         usuarios = usuarios.filter(rol=rol_filter)
     
+    # Paginación
+    paginator = Paginator(usuarios, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'usuarios': usuarios,
+        'usuarios': page_obj,
+        'page_obj': page_obj,
         'rol_filter': rol_filter,
     }
     
@@ -386,8 +393,14 @@ def lista_pacientes(request):
             Q(rut__icontains=busqueda)
         )
     
+    # Paginación
+    paginator = Paginator(pacientes, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'pacientes': pacientes,
+        'pacientes': page_obj,
+        'page_obj': page_obj,
         'busqueda': busqueda,
     }
     
@@ -494,8 +507,14 @@ def lista_citas(request):
     if fecha_filter:
         citas = citas.filter(fecha_hora__date=fecha_filter)
     
+    # Paginación
+    paginator = Paginator(citas, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'citas': citas,
+        'citas': page_obj,
+        'page_obj': page_obj,
         'estado_filter': estado_filter,
         'fecha_filter': fecha_filter,
     }
@@ -737,8 +756,14 @@ def lista_recetas(request):
     
     recetas = recetas.order_by('-fecha_emision')
     
+    # Paginación
+    paginator = Paginator(recetas, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'recetas': recetas,
+        'recetas': page_obj,
+        'page_obj': page_obj,
     }
     
     return render(request, 'recetas/lista.html', context)
@@ -937,8 +962,14 @@ def lista_signos(request):
     if paciente_id:
         signos = signos.filter(paciente_id=paciente_id)
     
+    # Paginación
+    paginator = Paginator(signos, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'signos': signos,
+        'signos': page_obj,
+        'page_obj': page_obj,
     }
     
     return render(request, 'signos/lista.html', context)
@@ -999,8 +1030,14 @@ def editar_historia(request, historia_id):
 def lista_medicamentos(request):
     medicamentos = Medicamento.objects.all().order_by('nombre')
     
+    # Paginación
+    paginator = Paginator(medicamentos, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     context = {
-        'medicamentos': medicamentos,
+        'medicamentos': page_obj,
+        'page_obj': page_obj,
     }
     
     return render(request, 'medicamentos/lista.html', context)

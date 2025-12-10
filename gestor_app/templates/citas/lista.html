@@ -33,6 +33,9 @@
                     </tbody>
                 </table>
             </div>
+            
+            {% include 'pagination.html' %}
+            
             {% else %}
             <p class="text-center text-muted">No hay citas registradas</p>
             {% endif %}

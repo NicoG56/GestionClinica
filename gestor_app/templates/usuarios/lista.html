@@ -78,6 +78,9 @@
                     </tbody>
                 </table>
             </div>
+            
+            {% include 'pagination.html' %}
+            
             {% else %}
             <p class="text-muted text-center mb-0">No hay usuarios registrados</p>
             {% endif %}
